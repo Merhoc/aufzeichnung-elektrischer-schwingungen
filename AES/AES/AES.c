@@ -29,9 +29,8 @@ volatile uint8_t 	TimingDelay;	// fuer mmc.c
 // Fuer die Messung:
 
 bool messen = true, first = true;						// Benötigte Variablen definieren
-uint16_t zeit, wert, zaehler;
+uint16_t wert;
 char datensatz[10];
-unsigned char sreg;
 
 int main(void)
 {
@@ -41,10 +40,9 @@ int main(void)
 	PORTC	= (1<<LED_GELB) | (1<<LED_ROT) | (1<<TST);	// LEDs "beschäftigt" und rot an, Pullup fuer Taster an PC2
 	
 	// TIMER_COUNTER_1: 16-Bit Counter für Zeitmessung
-	TIMSK1	|= (1<<TOIE1);								// Interrupt bei Owerflow aktivieren
+	//TIMSK1	|= (1<<TOIE1);								// Interrupt bei Owerflow aktivieren
 	// TIMER_COUNTER_2: 8-Bit Counter fürs Beenden der Aufzeichnung
 	TIMSK2	|= (1<<TOIE2);								// Interrupt bei Owerflow aktivieren
-	zaehler	= 0;
 	
 	// AD_Wandler an PC0:								// Werte fuer Pin-Wahl und Vergleichswert sind initialwerte
 	//DIDR0	|= (1<<ADC0D);								// Digitalen Eingang an PC0 deaktivieren
@@ -105,11 +103,8 @@ int main(void)
 	while(messen) {
 		while(ADCSRA & (1<<ADSC)) {}
 		ADCSRA |= (1<<ADSC);
-		cli();												//Auslesen des 16-Bit-Registers darf nicht unterbrochen werden
-		zeit = TCNT1;
-		sei();
 		
-		sprintf(datensatz, "%05i,%04i", zeit, ADC);			// Datensatz formatieren und als Zeichenkette speichern
+		sprintf(datensatz, "%04i", ADC);			// Datensatz formatieren und als Zeichenkette speichern
 		for(int i = 0; i < 10; i++) {						// Den Formatierten Datensatz in die Datei schreiben
 			ffwrite((uint8_t)datensatz[i]);
 		}
