@@ -30,7 +30,7 @@ volatile uint8_t 	TimingDelay;	// fuer mmc.c
 
 bool messen = true, first = true;						// Benötigte Variablen definieren
 uint16_t wert;
-char datensatz[10];
+char datensatz[4];
 
 int main(void)
 {
@@ -105,7 +105,7 @@ int main(void)
 		ADCSRA |= (1<<ADSC);
 		
 		sprintf(datensatz, "%04i", ADC);			// Datensatz formatieren und als Zeichenkette speichern
-		for(int i = 0; i < 10; i++) {						// Den Formatierten Datensatz in die Datei schreiben
+		for(int i = 0; i < 4; i++) {						// Den Formatierten Datensatz in die Datei schreiben
 			ffwrite((uint8_t)datensatz[i]);
 		}
 		ffwrite(0x0A);										// Neue Zeile für Windows
