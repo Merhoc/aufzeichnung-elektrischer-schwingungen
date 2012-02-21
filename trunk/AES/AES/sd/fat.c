@@ -7,7 +7,7 @@
 #include <string.h>
 
 
-#include "sd_config.h"
+#include "mmc_config.h"
 #include "fat.h"
 #include "file.h"
 #include "mmc.h"

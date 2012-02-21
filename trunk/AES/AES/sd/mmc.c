@@ -4,7 +4,7 @@
  *	Autor: Daniel R.
  */
 
-#include "sd_config.h"
+#include "mmc_config.h"
 #include "mmc.h"
 
 // Definitions for MMC/SDC command 
