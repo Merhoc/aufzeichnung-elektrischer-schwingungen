@@ -103,7 +103,7 @@ int main(void)
 	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
 	int pos = 0;
 	// Datei anlegen
-	uint8_t file_hr [] = "messung.bin";
+	uint8_t file_hr [] = "messung.csv";
 	if( MMC_FILE_OPENED == ffopen(file_hr,'r') ){		// Falls schon vorhanden, einfach loeschen		
 		ffrm(file_hr);
 	}
