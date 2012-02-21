@@ -43,7 +43,7 @@ int main(void)
 	TIMSK2	|= (1<<TOIE2);								// Interrupt bei Owerflow aktivieren
 	
 	// AD_Wandler an PC0:								// Werte fuer Pin-Wahl und Vergleichswert sind initialwerte
-	//DIDR0	|= (1<<ADC0D);								// Digitalen Eingang an PC0 deaktivieren
+	DIDR0	|= (1<<ADC0D);								// Digitalen Eingang an PC0 deaktivieren
 	ADCSRA	|= (1<<ADPS2) | (1<<ADPS1);					// Prescaler: clk/64
 	ADCSRA	|= (1<<ADEN);								// A/D-Wandler aktivieren
 	ADCSRA	|= (1<<ADSC);								// Erste Wandlung durchfuehren (Benoetigt 25 statt 13 Zyklen)
@@ -95,11 +95,8 @@ int main(void)
 		while(ADCSRA & (1<<ADSC)) {}
 		ADCSRA |= (1<<ADSC);
 		
-		sprintf(datensatz, "%04i", ADC);			// Datensatz formatieren und als Zeichenkette speichern
-		for(int i = 0; i < 4; i++) {						// Den Formatierten Datensatz in die Datei schreiben
-			ffwrite((uint8_t)datensatz[i]);
-		}
-		ffwrite(0x0A);										// Neue Zeile
+		ffwrite(ADCH);									// Schreibe High-Byte
+		ffwrite(ADCL);									// Schreibe Low-Byte
 	}
 	ffclose();											// Datei schließen
 	
