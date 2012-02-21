@@ -100,8 +100,10 @@ int main(void)
 	}
 	ffclose();											// Datei schlieﬂen
 	
+	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
+	
 	MCUCR	|= (1<<SE) | (1<<SM1);						// Sleepmode einstellen
-	asm volatile("sleep");								// Power down
+	asm volatile("sleep");								// Ausschalten
 }
 
 ISR (TIMER2_OVF_vect)
