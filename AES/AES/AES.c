@@ -67,12 +67,12 @@ int main(void)
 	}
 	
 	// Datei anlegen
-	uint8_t file_name [] = "messung.csv";
-	if( MMC_FILE_OPENED == ffopen(file_name,'r') ){		// Falls schon vorhanden, einfach loeschen		
-		ffrm(file_name);
+	uint8_t file_bin [] = "messung.bin";
+	if( MMC_FILE_OPENED == ffopen(file_bin,'r') ){		// Falls schon vorhanden, einfach loeschen		
+		ffrm(file_bin);
 	}
 	
-	if(MMC_FILE_ERROR == ffopen(file_name,'c') ){		// Datei zum Schreiben oeffnen.
+	if(MMC_FILE_ERROR == ffopen(file_bin,'c') ){		// Datei zum Schreiben oeffnen.
 		PORTC	|= (1<<LED_GRUEN);							// Wenn die Datei nicht geoeffnet werden kann, alle Lichter an
 		while(1) {}											// Und nichts mehr tun
 	}
@@ -99,6 +99,40 @@ int main(void)
 		ffwrite(ADCL);									// Schreibe Low-Byte
 	}
 	ffclose();											// Datei schließen
+	
+	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
+	int pos = 0;
+	// Datei anlegen
+	uint8_t file_hr [] = "messung.bin";
+	if( MMC_FILE_OPENED == ffopen(file_hr,'r') ){		// Falls schon vorhanden, einfach loeschen		
+		ffrm(file_hr);
+	}
+	
+	if(MMC_FILE_ERROR == ffopen(file_hr,'c') ){			// Datei zum Schreiben oeffnen.
+		PORTC	|= (1<<LED_GRUEN);							// Wenn die Datei nicht geoeffnet werden kann, alle Lichter an
+		while(1) {}											// Und nichts mehr tun
+	}
+	
+	ffclose();
+	ffopen(file_bin, 'r');								// Messergebnis zum Lesen oeffnen
+	uint32_t seek = file.length;						// Dateigroesse zwischenspeichern
+	uint8_t high, low;
+	ffclose();
+	do {
+		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
+		ffseek(file.length - seek);						// Zu aktueller Position springen
+		high	= ffread();								// 2 Bytes lesen
+		low		= ffread();
+		ffclose();
+		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
+		ffseek(file.length);							// Ans Dateiende springen
+		sprintf(datensatz, "%04i", (high*0xFF) + low);	// Datensatz formatieren
+		for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
+			ffwrite((uint8_t)datensatz[i]);
+		}
+		ffwrite(0x0A);									// Neue Zeile
+		ffclose();
+	} while(--seek);
 	
 	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
 	
