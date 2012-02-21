@@ -132,7 +132,7 @@ int main(void)
 		}
 		ffwrite(0x0A);									// Neue Zeile
 		ffclose();
-	} while(--seek);
+	} while(seek -= 2);
 	
 	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
 	
