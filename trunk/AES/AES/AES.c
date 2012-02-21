@@ -118,7 +118,7 @@ int main(void)
 	uint32_t seek = file.length;						// Dateigroesse zwischenspeichern
 	uint8_t high, low;
 	ffclose();
-	do {
+	while(seek > 1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
 		ffseek(file.length - seek);						// Zu aktueller Position springen
 		high	= ffread();								// 2 Bytes lesen
@@ -132,9 +132,12 @@ int main(void)
 		}
 		ffwrite(0x0A);									// Neue Zeile
 		ffclose();
-	} while(seek -= 2);
+		seek -= 2;										// Position um 2 Byte weiter
+	}
 	
 	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
+	PORTC	|= (1<<LED_GRUEN);							// LED "bereit" an
+	PORTC	&= ~(1<<LED_ROT);							// rote LED aus
 	
 	MCUCR	|= (1<<SE) | (1<<SM1);						// Sleepmode einstellen
 	asm volatile("sleep");								// Ausschalten
