@@ -17,7 +17,7 @@
 #include "sd/fat.h"
 #include "sd/mmc.h"
 
-volatile uint8_t 	TimingDelay;	// fuer mmc.c
+volatile uint8_t 	TimingDelay;
 
 // Fuer die Pins:
 
@@ -28,8 +28,7 @@ volatile uint8_t 	TimingDelay;	// fuer mmc.c
 
 // Fuer die Messung:
 
-bool messen = true, first = true;						// Benötigte Variablen definieren
-uint16_t wert;
+bool first = true, messen = true;						// Benötigte Variablen definieren
 char datensatz[4];
 
 int main(void)
@@ -101,7 +100,6 @@ int main(void)
 	ffclose();											// Datei schließen
 	
 	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
-	int pos = 0;
 	// Datei anlegen
 	uint8_t file_hr [] = "messung.csv";
 	if( MMC_FILE_OPENED == ffopen(file_hr,'r') ){		// Falls schon vorhanden, einfach loeschen		
@@ -126,7 +124,7 @@ int main(void)
 		ffclose();
 		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
 		ffseek(file.length);							// Ans Dateiende springen
-		sprintf(datensatz, "%04i", (high*0xFF) + low);	// Datensatz formatieren
+		sprintf(datensatz, "%04i", (high*(1<<8)) + low);	// Datensatz formatieren
 		for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 			ffwrite((uint8_t)datensatz[i]);
 		}
