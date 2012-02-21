@@ -39,8 +39,6 @@ int main(void)
 	DDRC	= (1<<PC3) | (1<<PC4) | (1<<PC5);			// Ausgaenge fuer LEDs
 	PORTC	= (1<<LED_GELB) | (1<<LED_ROT) | (1<<TST);	// LEDs "beschäftigt" und rot an, Pullup fuer Taster an PC2
 	
-	// TIMER_COUNTER_1: 16-Bit Counter für Zeitmessung
-	//TIMSK1	|= (1<<TOIE1);								// Interrupt bei Owerflow aktivieren
 	// TIMER_COUNTER_2: 8-Bit Counter fürs Beenden der Aufzeichnung
 	TIMSK2	|= (1<<TOIE2);								// Interrupt bei Owerflow aktivieren
 	
@@ -61,45 +59,38 @@ int main(void)
 	TCCR0B	|= (1<<CS02) | (1<<CS00);					// TIMER_COUNTER_0 mit Prescaler clk/1024 starten
 	sei();												// Auf Interrupts reagieren
 	
-	// SD-Karte Initialisieren, bei Fehler erneut bis es klappt
-	while(mmc_init() == FALSE) {
-		PORTC	&= ~(1<<LED_GELB);							// LED "beschäftigt" aus
-		PORTC	|=  (1<<LED_GELB);							// LED "beschäftigt" an
-	}
+	while(mmc_init() == FALSE) {}						// SD-Karte Initialisieren, bei Fehler erneut bis es klappt
 	
-	// Dateisystem Laden
-	if(fat_loadFatData() == FALSE) {
-		PORTC	|= (1<<LED_GRUEN);							// Wenn das Dateisystem nicht geöffnet werden kann, alle Lichter an
+	if(fat_loadFatData() == FALSE) {					// Dateisystem laden
+		PORTC	|= (1<<LED_GRUEN);							// Wenn das Dateisystem nicht geoeffnet werden kann, alle Lichter an
 		while(1) {}											// Und nichts mehr tun
 	}
 	
 	// Datei anlegen
 	uint8_t file_name [] = "messung.csv";
-	if( MMC_FILE_OPENED == ffopen(file_name,'r') ){		// Falls schon vorhanden, einfach löschen		
+	if( MMC_FILE_OPENED == ffopen(file_name,'r') ){		// Falls schon vorhanden, einfach loeschen		
 		ffrm(file_name);
 	}
 	
-	if(MMC_FILE_ERROR == ffopen(file_name,'c') ){		// Datei zum Schreiben öffnen.
-		PORTC	|= (1<<LED_GRUEN);							// Wenn die Datei nicht geöffnet werden kann, alle Lichter an
+	if(MMC_FILE_ERROR == ffopen(file_name,'c') ){		// Datei zum Schreiben oeffnen.
+		PORTC	|= (1<<LED_GRUEN);							// Wenn die Datei nicht geoeffnet werden kann, alle Lichter an
 		while(1) {}											// Und nichts mehr tun
 	}
 	
 	// Bereit zur Messung
 	PORTC	|=  (1<<LED_GRUEN);							// LED "bereit" an
-	PORTC	&= ~(1<<LED_GELB);							// LED "beschäftigt" aus
+	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
 	
-	while(PINC & (1<<TST)) {}							// Warten bis Taster an PC2 gedrückt
+	while(PINC & (1<<TST)) {}							// Warten bis Taster an PC2 gedrueckt
 	
-	// MESSUNG BEGINNT:
+	// Messung beginnt:
 	
 	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
-	PORTC &= ~(1<<LED_ROT);
+	PORTC	|= (1<<LED_GELB);							// LED "beschaeftigt" an
 	
 	TCCR2B	|= (1<<CS22) | (1<<CS21) | (1<<CS20);		// TIMER_COUNTER_2: mit Prescaler clk/1024 starten
 	
 	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
-	PORTC	|= (1<<LED_GRUEN);							// LED "beschäftigt" an
-	//TCCR1B	|= (1<<CS10);								// TIMER_COUNTER_1: clk/1 - Ohne Prescaling starten
 	while(messen) {
 		while(ADCSRA & (1<<ADSC)) {}
 		ADCSRA |= (1<<ADSC);
@@ -108,30 +99,13 @@ int main(void)
 		for(int i = 0; i < 4; i++) {						// Den Formatierten Datensatz in die Datei schreiben
 			ffwrite((uint8_t)datensatz[i]);
 		}
-		ffwrite(0x0A);										// Neue Zeile für Windows
+		ffwrite(0x0A);										// Neue Zeile
 	}
-	
 	ffclose();											// Datei schließen
 	
 	MCUCR	|= (1<<SE) | (1<<SM1);						// Sleepmode einstellen
 	asm volatile("sleep");								// Power down
 }
-
-/*ISR (ADC_vect)
-{
-	PORTC	&= ~(1<<LED_GELB);							// LED "beschäftigt" aus
-	time = TCNT1;										// Zeit-(X-)Wert zwischenspeichern
-	TCNT1 = 14;											// TIMER_COUNTER_1 von vorn zählen lassen - Die Vergangenen Takte werden als Startzeit hinzugerechnet.
-	
-	sprintf(datensatz, "%05i,%04i", time, ADC);			// Datensatz formatieren und als Zeichenkette speichern
-	
-	for(uint8_t i = 0; i < 10; i++) {					// Den Formatierten Datensatz in die Datei schreiben
-		ffwrite((uint8_t)datensatz[i]);
-	}		
-	ffwrite(0x0D);										// Neue Zeile
-	ffwrite(0x0A);										// Neue Zeile für Windows
-	PORTC	|= (1<<LED_GELB);							// LED "beschäftigt" an
-}*/
 
 ISR (TIMER2_OVF_vect)
 {
