@@ -43,11 +43,13 @@ int main(void)
 	
 	// AD_Wandler an PC0:								// Werte fuer Pin-Wahl und Vergleichswert sind initialwerte
 	DIDR0	|= (1<<ADC0D);								// Digitalen Eingang an PC0 deaktivieren
-	ADMUX	|= (1<<ADLAR);								// Ergebnis links anheften (-> 8Bit-Messung)
+	ADMUX	|= (1<<ADLAR);
 	ADCSRA	|= (1<<ADPS2) | (1<<ADPS1);					// Prescaler: clk/64
 	ADCSRA	|= (1<<ADEN);								// A/D-Wandler aktivieren
 	ADCSRA	|= (1<<ADSC);								// Erste Wandlung durchfuehren (Benoetigt 25 statt 13 Zyklen)
 	while(ADCSRA & (1<<ADSC)) {}						// Auf Abschluss der Wandlung warten
+	ADCSRA	|= (1<<ADATE) | (1<<ADIE);					// Free Running Mode
+	
 	
 	// TIMER_COUNTER_0: 8-Bit Timer für die SD-Karte
 	// Initialisierung, auf jeden Fall vor mmc_init()
@@ -91,11 +93,10 @@ int main(void)
 	TCCR2B	|= (1<<CS22) | (1<<CS21) | (1<<CS20);		// TIMER_COUNTER_2: mit Prescaler clk/1024 starten
 	
 	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
-	while(messen) {
-		while(ADCSRA & (1<<ADSC)) {}
-		ffwrite(ADCH);									// Schreibe auf SD-Karte
-		ADCSRA	|= (1<<ADSC);
-	}
+	
+	while(messen) {}									// Messung abwarten, den Rest regeln Interrupts
+	
+	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
 	ffclose();											// Datei schließen
 	
 	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
@@ -158,4 +159,9 @@ ISR (TIMER2_OVF_vect)
 ISR (TIMER0_COMPA_vect)
 {
 	TimingDelay = (TimingDelay==0) ? 0 : TimingDelay-1;
+}
+
+ISR (ADC_vect)
+{
+	ffwrite(ADCH);									// Schreibe auf SD-Karte
 }
