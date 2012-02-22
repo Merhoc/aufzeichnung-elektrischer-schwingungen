@@ -114,17 +114,17 @@ int main(void)
 	ffclose();
 	ffopen(file_bin, 'r');								// Messergebnis zum Lesen oeffnen
 	uint32_t seek = file.length;						// Dateigroesse zwischenspeichern
-	uint8_t high, low;
+	uint8_t low, high;
 	ffclose();
 	while(seek > 1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
 		ffseek(file.length - seek);						// Zu aktueller Position springen
-		high	= ffread();								// 2 Bytes lesen
-		low		= ffread();
+		low		= ffread();								// 2 Bytes lesen
+		high	= ffread();
 		ffclose();
 		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
 		ffseek(file.length);							// Ans Dateiende springen
-		sprintf(datensatz, "%04i", (high*(1<<8)) + low);	// Datensatz formatieren
+		sprintf(datensatz, "%04i", (low+high*(1<<8)));	// Datensatz formatieren
 		for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 			ffwrite((uint8_t)datensatz[i]);
 		}
