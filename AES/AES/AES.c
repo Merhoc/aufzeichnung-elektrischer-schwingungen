@@ -43,7 +43,7 @@ int main(void)
 	
 	// AD_Wandler an PC0:								// Werte fuer Pin-Wahl und Vergleichswert sind initialwerte
 	DIDR0	|= (1<<ADC0D);								// Digitalen Eingang an PC0 deaktivieren
-	ADCSRA	|= (1<<ADPS2) | (1<<ADPS1);					// Prescaler: clk/64
+	ADCSRA	|= (1<<ADPS2) | (1<<ADPS0);					// Prescaler: clk/32 = 250kHz
 	ADCSRA	|= (1<<ADEN);								// A/D-Wandler aktivieren
 	ADCSRA	|= (1<<ADSC);								// Erste Wandlung durchfuehren (Benoetigt 25 statt 13 Zyklen)
 	while(ADCSRA & (1<<ADSC)) {}						// Auf Abschluss der Wandlung warten
