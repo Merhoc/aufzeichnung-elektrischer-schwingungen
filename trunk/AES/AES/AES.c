@@ -28,15 +28,26 @@ volatile uint8_t 	TimingDelay;
 
 // Fuer die Messung:
 
-bool first = true, messen = true;						// Benötigte Variablen definieren
+bool first = true, messen = true;						// Benoetigte Variablen definieren
 char datensatz[4];
+uint8_t low, high;
 
 int main(void)
 {
-	// Initialisierung:
-	// Eingangs-/Ausgangspins, Pullup-Widerstände
+	// Anschalten
+	// Eingangs-/Ausgangspins, Pullup-Widerstaende
 	DDRC	= (1<<PC3) | (1<<PC4) | (1<<PC5);			// Ausgaenge fuer LEDs
-	PORTC	= (1<<LED_GELB) | (1<<LED_ROT) | (1<<TST);	// LEDs "beschäftigt" und rot an, Pullup fuer Taster an PC2
+	PORTC	= (1<<LED_GRUEN) | (1<<LED_ROT) | (1<<TST);	// LEDs "beschaeftigt" und rot an, Pullup fuer Taster an PC2
+	
+	while(PINC & (1<<TST)) {}							// Warten bis Taster an PC2 gedrueckt
+		
+	// Was jetzt kommt geht so schnell, dass vermutlich kein weiterer Knopfdruck notwendig ist.
+	// Die Messung wird noch mit dem vorhergehenden Knopfdruck gestartet (aus meschanichen Gruenden), 
+	// und das schadet nichts.
+	
+	// Initialisierung:
+	PORTC	|=  (1<<LED_GELB);							// LED "beschaeftigt" an
+	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
 	
 	// TIMER_COUNTER_2: 8-Bit Counter fürs Beenden der Aufzeichnung
 	TIMSK2	|= (1<<TOIE2);								// Interrupt bei Owerflow aktivieren
@@ -113,7 +124,6 @@ int main(void)
 	ffclose();
 	ffopen(file_bin, 'r');								// Messergebnis zum Lesen oeffnen
 	uint32_t seek = file.length;						// Dateigroesse zwischenspeichern
-	uint8_t low, high;
 	ffclose();
 	while(seek > 1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
@@ -157,6 +167,6 @@ ISR (TIMER0_COMPA_vect)
 
 ISR (ADC_vect)
 {
-	ffwrite(ADCL);
-	ffwrite(ADCH);									// Schreibe auf SD-Karte
+	ffwrite(ADCL);										// Schreibe auf SD-Karte
+	ffwrite(ADCH);
 }
