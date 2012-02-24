@@ -40,10 +40,6 @@ int main(void)
 	PORTC	= (1<<LED_GRUEN) | (1<<LED_ROT) | (1<<TST);	// LEDs "beschaeftigt" und rot an, Pullup fuer Taster an PC2
 	
 	while(PINC & (1<<TST)) {}							// Warten bis Taster an PC2 gedrueckt
-		
-	// Was jetzt kommt geht so schnell, dass vermutlich kein weiterer Knopfdruck notwendig ist.
-	// Die Messung wird noch mit dem vorhergehenden Knopfdruck gestartet (aus meschanichen Gruenden), 
-	// und das schadet nichts.
 	
 	// Initialisierung:
 	PORTC	|=  (1<<LED_GELB);							// LED "beschaeftigt" an
