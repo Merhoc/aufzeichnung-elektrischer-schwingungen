@@ -7,28 +7,29 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
 
 using namespace std;
 
 int main() {
 	FILE * file;
-	int peaks, i, value[650];
-	int buffer;
+	int peaks, i;
+	unsigned short value[650];
+	char bufferl, bufferh;
 	i = 0;
 	peaks = 0;
-
-	if(file = fopen("MESSUNG.BIN", "r")) {
-		while(!feof(file)) {
-			buffer = fgetc(file) + (fgetc(file)<<8);
+	ifstream ifs("MESSUNG.BIN", ifstream::in);
+	if(ifs.good()) {
+		while(ifs.good()) {
+			ifs.read(&bufferl, sizeof(bufferl));
+			ifs.read(&bufferh, sizeof(bufferh));
+			value[i] = (unsigned char)bufferl + ((unsigned char)bufferh<<8);
 			i ++;
-			cout << i << ": " << i * 0.1265 << " - " << value[i] << endl;
+			cout << i << ": " << i * 0.1265 << " - " << (unsigned int)bufferl << endl;
 		}
 		if(true) {
 			peaks ++;
 		}
-		
-		
-		fclose(file);
 	}else{
 		cout << "Datei konnte nicht gefunden werden. " << endl;
 	}
