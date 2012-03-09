@@ -5,12 +5,12 @@
  *  Author: Heiko Metzger
  * 
  * Fuses: low = 0xFD ; high = 0xDF ; ext. = 0xF9
+ * F_CPU = 8000000	; ATMEGA168P
  */ 
-
-#define F_CPU 8000000
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <stdio.h>
 #include <stdbool.h>
 
 // Fuer die Speicherkarte:
@@ -47,7 +47,7 @@ int main(void)
 	PORTC	|=  (1<<LED_GELB);							// LED "beschaeftigt" an
 	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
 	
-	// TIMER_COUNTER_2: 8-Bit Counter fürs Beenden der Aufzeichnung
+	// TIMER_COUNTER_2: 8-Bit Counter fuers Beenden der Aufzeichnung
 	TIMSK2	|= (1<<TOIE2);								// Interrupt bei Owerflow aktivieren
 	
 	// AD_Wandler an PC0:								// Werte fuer Pin-Wahl und Vergleichswert sind initialwerte
@@ -59,7 +59,7 @@ int main(void)
 	ADCSRA	|= (1<<ADATE) | (1<<ADIE);					// Free Running Mode
 	
 	
-	// TIMER_COUNTER_0: 8-Bit Timer für die SD-Karte
+	// TIMER_COUNTER_0: 8-Bit Timer fuer die SD-Karte
 	// Initialisierung, auf jeden Fall vor mmc_init()
 	TimingDelay = 0;
 	TCCR0A	= (1<<WGM01); 								// Clear Timer on Compare Match (CTC)
@@ -105,7 +105,7 @@ int main(void)
 	while(messen) {}									// Messung abwarten, den Rest regeln Interrupts
 	
 	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
-	ffclose();											// Datei schließen
+	ffclose();											// Datei schliessen
 	
 	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
 	// Datei anlegen
@@ -150,7 +150,7 @@ int main(void)
 
 ISR (TIMER2_OVF_vect)
 {
-	if(!first)											// Beim ersten Durchlauf nichts ändern
+	if(!first)											// Beim ersten Durchlauf nichts aendern
 	{
 		messen = false;									// While-Schleife verlassen
 	}else{
