@@ -3,6 +3,8 @@
  *
  * Created: 16.01.2012 21:00:14
  *  Author: Heiko Metzger
+ * 
+ * Fuses: low = 0xFD ; high = 0xDF ; ext. = 0xF9
  */ 
 
 #define F_CPU 8000000
