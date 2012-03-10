@@ -31,8 +31,8 @@ volatile uint8_t 	TimingDelay;
 // Fuer die Messung:
 
 bool first = true, messen = true;						// Benoetigte Variablen definieren
-char datensatz[3];
-uint8_t byte[2];
+char datensatz[4];
+uint8_t low, high;
 
 int main(void)
 {
@@ -52,7 +52,6 @@ int main(void)
 	
 	// AD_Wandler an PC0:								// Werte fuer Pin-Wahl und Vergleichswert sind initialwerte
 	DIDR0	|= (1<<ADC0D);								// Digitalen Eingang an PC0 deaktivieren
-	ADMUX	|= (1<<ADLAR);								// Ergebnis links anheften (-> 8Bit-Messung)
 	ADCSRA	|= (1<<ADPS2) | (1<<ADPS0);					// Prescaler: clk/32 = 250kHz
 	ADCSRA	|= (1<<ADEN);								// A/D-Wandler aktivieren
 	ADCSRA	|= (1<<ADSC);								// Erste Wandlung durchfuehren (Benoetigt 25 statt 13 Zyklen)
@@ -108,6 +107,12 @@ int main(void)
 	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
 	ffclose();											// Datei schliessen
 	
+	PORTC	|= (1<<LED_GRUEN);
+	PORTC	&= ~(1<<LED_GELB);
+	while(PINC & (1<<TST)) {}							// Vorm Umwandeln erneut auf Tastendruck warten.
+	PORTC	|= (1<<LED_GELB);
+	PORTC	&= ~(1<<LED_GRUEN);
+	
 	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
 	// Datei anlegen
 	uint8_t file_hr [] = "messung.csv";
@@ -127,18 +132,13 @@ int main(void)
 	while(seek > 1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
 		ffseek(file.length - seek);						// Zu aktueller Position springen
-		byte[0]	= ffread();								// 2 Bytes lesen
-		byte[1]	= ffread();
+		low		= ffread();								// 2 Bytes lesen
+		high	= ffread();
 		ffclose();
 		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
 		ffseek(file.length);							// Ans Dateiende springen
-		sprintf(datensatz, "%03i", byte[0]);			// Datensatz formatieren
-		for(int i = 0; i < 3; i++) {					// Den Formatierten Datensatz in die Datei schreiben
-			ffwrite((uint8_t)datensatz[i]);
-		}
-		ffwrite(0x0A);									// Neue Zeile
-		sprintf(datensatz, "%03i", byte[1]);			// Datensatz formatieren
-		for(int i = 0; i < 3; i++) {					// Den Formatierten Datensatz in die Datei schreiben
+		sprintf(datensatz, "%04i", low + (high<<8));	// Datensatz formatieren
+		for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 			ffwrite((uint8_t)datensatz[i]);
 		}
 		ffwrite(0x0A);									// Neue Zeile
@@ -171,5 +171,6 @@ ISR (TIMER0_COMPA_vect)
 
 ISR (ADC_vect)
 {
-	ffwrite(ADCH);										// Schreibe auf SD-Karte
+	ffwrite(ADCL);										// Schreibe auf SD-Karte
+	ffwrite(ADCH);
 }
