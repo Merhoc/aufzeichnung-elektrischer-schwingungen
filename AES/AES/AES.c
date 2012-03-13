@@ -10,6 +10,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/delay.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -48,6 +49,8 @@ int main(void)
 	// Initialisierung:
 	PORTC	|=  (1<<LED_GELB);							// LED "beschaeftigt" an
 	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
+	
+	_delay_ms(10);
 	
 	// TIMER_COUNTER_2: 8-Bit Counter fuers Beenden der Aufzeichnung
 	TIMSK2	|= (1<<TOIE2);								// Interrupt bei Owerflow aktivieren
