@@ -21,6 +21,8 @@
 
 volatile uint8_t 	TimingDelay;
 
+#define CACHE_SIZE 10
+
 // Fuer die Pins:
 
 #define	LED_ROT		PC5
@@ -32,7 +34,7 @@ volatile uint8_t 	TimingDelay;
 
 bool first = true, messen = true;						// Benoetigte Variablen definieren
 char datensatz[4];
-uint8_t low[50], high[50];
+uint8_t low[CACHE_SIZE], high[CACHE_SIZE];
 
 int main(void)
 {
@@ -132,14 +134,14 @@ int main(void)
 	while(seek > 1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
 		ffseek(file.length - seek);						// Zu aktueller Position springen
-		for(int n = 0; n < 50; n++) {
+		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache fuellen
 			low[n]	= ffread();								// 2 Bytes lesen
 			high[n]	= ffread();
 		}		
 		ffclose();
 		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
 		ffseek(file.length);							// Ans Dateiende springen
-		for(int n = 0; n < 50; n++) {
+		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache abarbeiten
 			sprintf(datensatz, "%04i", low[n] + (high[n]<<8));	// Datensatz formatieren
 			for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 				ffwrite((uint8_t)datensatz[i]);
@@ -147,7 +149,7 @@ int main(void)
 			ffwrite(0x0A);									// Neue Zeile
 		}		
 		ffclose();
-		seek -= 2 * 100;								// Position um 2 * 100 Byte weiter
+		seek -= 2 * CACHE_SIZE;								// Position um 2 * 100 Byte weiter
 	}
 	
 	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
