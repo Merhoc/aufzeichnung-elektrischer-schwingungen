@@ -9,12 +9,11 @@
  */ 
 
 #ifndef F_CPU
-	#define F_CPU 8000000	// Falls nicht durch die IDE angegeben muss F_CPU fuer delay.h gesetzt werden.
+	#define F_CPU 8000000	// Falls nicht durch die IDE angegeben muss F_CPU "manuell" gesetzt werden.
 #endif
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <util/delay.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -95,18 +94,8 @@ int main(void)
 	}
 	
 	// Bereit zur Messung
-	PORTC	|=  (1<<LED_GRUEN);							// LED "bereit" an
-	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
-	
-	while(PINC & (1<<TST)) {}							// Warten bis Taster an PC2 gedrueckt
-	
 	// Messung beginnt:
-	
-	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
-	PORTC	|= (1<<LED_GELB);							// LED "beschaeftigt" an
-		
-	_delay_ms(10);										// 10ms verzoegern ("Entprellung")
-	
+
 	TCCR2B	|= (1<<CS22) | (1<<CS21) | (1<<CS20);		// TIMER_COUNTER_2: mit Prescaler clk/1024 starten
 	
 	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
