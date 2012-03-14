@@ -8,10 +8,14 @@
  * F_CPU = 8000000	; ATMEGA168P
  */ 
 
+#ifndef F_CPU
+	#define F_CPU 8000000	// Falls nicht durch die IDE angegeben muss F_CPU fuer delay.h gesetzt werden.
+#endif
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <avr/delay.h>
-#include <stdio.h>
+#include <util/delay.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 // Fuer die Speicherkarte:
@@ -145,14 +149,14 @@ int main(void)
 		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
 		ffseek(file.length);							// Ans Dateiende springen
 		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache abarbeiten
-			sprintf(datensatz, "%04i", low[n] + (high[n]<<8));	// Datensatz formatieren
+			itoa(low[n] + (high[n]<<8), datensatz, 10);		// Datensatz formatieren
 			for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 				ffwrite((uint8_t)datensatz[i]);
 			}
 			ffwrite(0x0A);									// Neue Zeile
 		}		
 		ffclose();
-		seek -= 2 * CACHE_SIZE;								// Position um 2 * 100 Byte weiter
+		seek -= 2 * CACHE_SIZE;								// Position um 2 * CACHE_SIZE Byte weiter
 	}
 	
 	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
