@@ -26,7 +26,7 @@
 
 volatile uint8_t 	TimingDelay;
 
-#define CACHE_SIZE 10
+#define CACHE_SIZE 100
 
 // Fuer die Pins:
 
@@ -53,8 +53,6 @@ int main(void)
 	// Initialisierung:
 	PORTC	|=  (1<<LED_GELB);							// LED "beschaeftigt" an
 	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
-	
-	_delay_ms(10);
 	
 	// TIMER_COUNTER_2: 8-Bit Counter fuers Beenden der Aufzeichnung
 	TIMSK2	|= (1<<TOIE2);								// Interrupt bei Owerflow aktivieren
@@ -106,6 +104,8 @@ int main(void)
 	
 	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
 	PORTC	|= (1<<LED_GELB);							// LED "beschaeftigt" an
+		
+	_delay_ms(10);										// 10ms verzoegern ("Entprellung")
 	
 	TCCR2B	|= (1<<CS22) | (1<<CS21) | (1<<CS20);		// TIMER_COUNTER_2: mit Prescaler clk/1024 starten
 	
