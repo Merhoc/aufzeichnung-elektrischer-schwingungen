@@ -38,7 +38,7 @@ volatile uint8_t 	TimingDelay;
 
 bool first = true, messen = true;						// Benoetigte Variablen definieren
 char datensatz[5];
-uint8_t low[CACHE_SIZE], high[CACHE_SIZE];
+uint8_t low[CACHE_SIZE], high[CACHE_SIZE], time, ctime[CACHE_SIZE];
 
 int main(void)
 {
@@ -99,11 +99,11 @@ int main(void)
 	TCCR2B	|= (1<<CS22) | (1<<CS21) | (1<<CS20);		// TIMER_COUNTER_2: mit Prescaler clk/1024 starten
 	
 	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
-	TCCR1B	|= (1<<CS10);								// TIMER_COUNTER_1: ohne Prescaler starten
+	TCCR1B	|= (1<<CS11);								// TIMER_COUNTER_1: mit Prescaler clk/8 starten
 	
 	while(messen) {}									// Messung abwarten, den Rest regeln Interrupts
 		
-	TCCR1B	&= ~(1<<CS10);								// TIMER_COUNTER_1 stoppen
+	TCCR1B	&= ~(1<<CS11);								// TIMER_COUNTER_1 stoppen
 	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
 	ffclose();											// Datei schliessen
 	
@@ -129,10 +129,11 @@ int main(void)
 	ffopen(file_bin, 'r');								// Messergebnis zum Lesen oeffnen
 	uint32_t seek = file.length;						// Dateigroesse zwischenspeichern
 	ffclose();
-	while(seek > (2*CACHE_SIZE)-1) {
+	while(seek > (3*CACHE_SIZE)-1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
 		ffseek(file.length - seek);						// Zu aktueller Position springen
 		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache fuellen
+			ctime[n]= ffread();
 			low[n]	= ffread();								// 2 Bytes lesen
 			high[n]	= ffread();
 		}		
@@ -140,6 +141,12 @@ int main(void)
 		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
 		ffseek(file.length);							// Ans Dateiende springen
 		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache abarbeiten
+			itoa(ctime, datensatz, 10);
+			for(int i = 0; i < 3; i++) {
+				if(datensatz[i] != 0x00)
+					ffwrite((uint8_t)datensatz[i]);
+			}
+			ffwrite(",");
 			itoa(low[n] + (high[n]<<8), datensatz, 10);		// Datensatz formatieren
 			for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 				if(datensatz[i] != 0x00)
@@ -148,17 +155,8 @@ int main(void)
 			ffwrite(0x0A);									// Neue Zeile
 		}		
 		ffclose();
-		seek -= 2 * CACHE_SIZE;								// Position um 2 * CACHE_SIZE Byte weiter
+		seek -= 3 * CACHE_SIZE;								// Position um 2 * CACHE_SIZE Byte weiter
 	}
-	
-	ffopen(file_hr, 'w');
-	ffseek(file.length);
-	itoa(TCNT1, datensatz, 10);
-	for(int i = 0; i < 5; i++) {
-		if(datensatz[i] != 0x00)
-			ffwrite((uint8_t)datensatz[i]);
-	}
-	ffclose();
 	
 	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
 	PORTC	|= (1<<LED_GRUEN);							// LED "bereit" an
@@ -185,9 +183,9 @@ ISR (TIMER0_COMPA_vect)
 
 ISR (ADC_vect)
 {
-	if(TCNT1 > 258)
-		ADCH += (1<<3);
-	TCNT1 = 0;
+	time = TCNT1L;										// Zeit zwischenspeichern
+	TCNT1 = 0;											// TIMER_COUNTER_1 von vorn starten
+	ffwrite(time);
 	ffwrite(ADCL);										// Schreibe auf SD-Karte
 	ffwrite(ADCH);
 }
