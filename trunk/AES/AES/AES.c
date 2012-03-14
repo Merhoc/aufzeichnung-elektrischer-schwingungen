@@ -37,7 +37,7 @@ volatile uint8_t 	TimingDelay;
 // Fuer die Messung:
 
 bool first = true, messen = true;						// Benoetigte Variablen definieren
-char datensatz[4];
+char datensatz[5];
 uint8_t low[CACHE_SIZE], high[CACHE_SIZE];
 
 int main(void)
@@ -99,9 +99,11 @@ int main(void)
 	TCCR2B	|= (1<<CS22) | (1<<CS21) | (1<<CS20);		// TIMER_COUNTER_2: mit Prescaler clk/1024 starten
 	
 	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
+	TCCR1B	|= (1<<CS11) | (1<<CS10);					// TIMER_COUNTER_1: mit Prescaler clk/64 starten
 	
 	while(messen) {}									// Messung abwarten, den Rest regeln Interrupts
-	
+		
+	TCCR1B	&= ~((1<<CS11) | (1<<CS10));				// TIMER_COUNTER_1 stoppen
 	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
 	ffclose();											// Datei schliessen
 	
@@ -140,13 +142,23 @@ int main(void)
 		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache abarbeiten
 			itoa(low[n] + (high[n]<<8), datensatz, 10);		// Datensatz formatieren
 			for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
-				ffwrite((uint8_t)datensatz[i]);
+				if(datensatz[i] != 0x00)
+					ffwrite((uint8_t)datensatz[i]);
 			}
 			ffwrite(0x0A);									// Neue Zeile
 		}		
 		ffclose();
 		seek -= 2 * CACHE_SIZE;								// Position um 2 * CACHE_SIZE Byte weiter
 	}
+	
+	ffopen(file_hr, 'w');
+	ffseek(file.length);
+	itoa(TCNT1, datensatz, 10);
+	for(int i = 0; i < 5; i++) {
+		if(datensatz[i] != 0x00)
+			ffwrite((uint8_t)datensatz[i]);
+	}
+	ffclose();
 	
 	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
 	PORTC	|= (1<<LED_GRUEN);							// LED "bereit" an
