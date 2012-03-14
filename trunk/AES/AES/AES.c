@@ -99,11 +99,11 @@ int main(void)
 	TCCR2B	|= (1<<CS22) | (1<<CS21) | (1<<CS20);		// TIMER_COUNTER_2: mit Prescaler clk/1024 starten
 	
 	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
-	TCCR1B	|= (1<<CS11) | (1<<CS10);					// TIMER_COUNTER_1: mit Prescaler clk/64 starten
+	TCCR1B	|= (1<<CS10);								// TIMER_COUNTER_1: ohne Prescaler starten
 	
 	while(messen) {}									// Messung abwarten, den Rest regeln Interrupts
 		
-	TCCR1B	&= ~((1<<CS11) | (1<<CS10));				// TIMER_COUNTER_1 stoppen
+	TCCR1B	&= ~(1<<CS10);								// TIMER_COUNTER_1 stoppen
 	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
 	ffclose();											// Datei schliessen
 	
@@ -185,6 +185,9 @@ ISR (TIMER0_COMPA_vect)
 
 ISR (ADC_vect)
 {
+	if(TCNT1 > 420)
+		ADCH += (1<<3);
+	TCNT1 = 0;
 	ffwrite(ADCL);										// Schreibe auf SD-Karte
 	ffwrite(ADCH);
 }
