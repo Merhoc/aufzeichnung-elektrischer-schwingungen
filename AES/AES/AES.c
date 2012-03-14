@@ -141,12 +141,12 @@ int main(void)
 		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
 		ffseek(file.length);							// Ans Dateiende springen
 		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache abarbeiten
-			itoa(ctime, datensatz, 10);
+			itoa(ctime[n], datensatz, 10);
 			for(int i = 0; i < 3; i++) {
 				if(datensatz[i] != 0x00)
 					ffwrite((uint8_t)datensatz[i]);
 			}
-			ffwrite(",");
+			ffwrite(0x2C);									// ,
 			itoa(low[n] + (high[n]<<8), datensatz, 10);		// Datensatz formatieren
 			for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 				if(datensatz[i] != 0x00)
