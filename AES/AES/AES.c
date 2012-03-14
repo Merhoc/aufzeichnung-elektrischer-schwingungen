@@ -185,7 +185,7 @@ ISR (TIMER0_COMPA_vect)
 
 ISR (ADC_vect)
 {
-	if(TCNT1 > 420)
+	if(TCNT1 > 258)
 		ADCH += (1<<3);
 	TCNT1 = 0;
 	ffwrite(ADCL);										// Schreibe auf SD-Karte
