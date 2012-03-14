@@ -138,7 +138,7 @@ int main(void)
 	ffopen(file_bin, 'r');								// Messergebnis zum Lesen oeffnen
 	uint32_t seek = file.length;						// Dateigroesse zwischenspeichern
 	ffclose();
-	while(seek > 1) {
+	while(seek > (2*CACHE_SIZE)-1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
 		ffseek(file.length - seek);						// Zu aktueller Position springen
 		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache fuellen
