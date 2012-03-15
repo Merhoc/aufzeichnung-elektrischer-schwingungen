@@ -36,8 +36,8 @@ volatile uint8_t 	TimingDelay;
 
 // Fuer die Messung:
 
-bool first = true, messen = true;						// Benoetigte Variablen definieren
-char datensatz[5];
+// Benoetigte Variablen definieren
+char datensatz[5], zaehler;
 uint8_t low[CACHE_SIZE], high[CACHE_SIZE], time, ctime[CACHE_SIZE];
 
 int main(void)
@@ -101,7 +101,7 @@ int main(void)
 	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
 	TCCR1B	|= (1<<CS11);								// TIMER_COUNTER_1: mit Prescaler clk/8 starten
 	
-	while(messen) {}									// Messung abwarten, den Rest regeln Interrupts
+	while(zaehler < 2) {}								// Messung abwarten, den Rest regeln Interrupts
 		
 	TCCR1B	&= ~(1<<CS11);								// TIMER_COUNTER_1 stoppen
 	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
@@ -168,12 +168,7 @@ int main(void)
 
 ISR (TIMER2_OVF_vect)
 {
-	if(!first)											// Beim ersten Durchlauf nichts aendern
-	{
-		messen = false;									// While-Schleife verlassen
-	}else{
-		first = false;									// Ersten Durchlauf markieren
-	}	
+	zaehler ++;
 }
 
 ISR (TIMER0_COMPA_vect)
@@ -183,9 +178,11 @@ ISR (TIMER0_COMPA_vect)
 
 ISR (ADC_vect)
 {
+	cli();												// Voruebergehend nicht auf Interrupts reagieren
 	time = TCNT1L;										// Zeit zwischenspeichern
 	TCNT1 = 0;											// TIMER_COUNTER_1 von vorn starten
 	ffwrite(time);
 	ffwrite(ADCL);										// Schreibe auf SD-Karte
 	ffwrite(ADCH);
+	sei();												// Interrupts wieder beachten
 }
