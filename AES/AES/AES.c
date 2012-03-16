@@ -58,6 +58,14 @@ volatile uint8_t 	TimingDelay;
 char datensatz[5], zaehler;
 uint8_t low[CACHE_SIZE], high[CACHE_SIZE], time, ctime[CACHE_SIZE];
 
+uint8_t file_bin []	= "messung.bin";
+uint8_t file_hr []	= "messung.csv";
+
+// Funktionsprototypen:
+void initialisieren(void);
+void messen(void);
+void ergebnis_konvertieren(void);
+
 int main(void)
 {
 	// Anschalten
@@ -67,9 +75,55 @@ int main(void)
 	
 	while(PINC & (1<<TST)) {}							// Warten bis Taster an PC2 gedrueckt
 	
-	// Initialisierung:
 	PORTC	|=  (1<<LED_GELB);							// LED "beschaeftigt" an
 	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
+	
+	initialisieren();
+	
+	messen();
+	
+	PORTC	|= (1<<LED_GRUEN);							// LED "bereit" an
+	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
+	
+	while(PINC & (1<<TST)) {}							// Vorm Umwandeln erneut auf Tastendruck warten.
+	
+	PORTC	|= (1<<LED_GELB);							// LED "beschaeftigt" an
+	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
+	
+	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
+	ergebnis_konvertieren();
+	
+	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
+	PORTC	|= (1<<LED_GRUEN);							// LED "bereit" an
+	PORTC	&= ~(1<<LED_ROT);							// rote LED aus
+	
+	MCUCR	|= (1<<SE) | (1<<SM1);						// Sleepmode einstellen
+	asm volatile("sleep");								// Ausschalten
+}
+
+ISR (TIMER2_OVF_vect)
+{
+	zaehler ++;
+}
+
+ISR (TIMER0_COMPA_vect)
+{
+	TimingDelay = (TimingDelay==0) ? 0 : TimingDelay-1;
+}
+
+ISR (ADC_vect)
+{
+	cli();												// Voruebergehend nicht auf Interrupts reagieren
+	time = TCNT1L;										// Zeit zwischenspeichern
+	TCNT1 = 0;											// TIMER_COUNTER_1 von vorn starten
+	ffwrite(time);
+	ffwrite(ADCL);										// Schreibe auf SD-Karte
+	ffwrite(ADCH);
+	sei();												// Interrupts wieder beachten
+}
+
+void initialisieren(void) {
+	// Initialisierung:
 	
 	// TIMER_COUNTER_2: 8-Bit Counter fuers Beenden der Aufzeichnung
 	TIMSK2	|= (1<<TOIE2);								// Interrupt bei Owerflow aktivieren
@@ -101,7 +155,6 @@ int main(void)
 	}
 	
 	// Datei anlegen
-	uint8_t file_bin [] = "messung.bin";
 	if( MMC_FILE_OPENED == ffopen(file_bin,'r') ){		// Falls schon vorhanden, einfach loeschen		
 		ffrm(file_bin);
 	}
@@ -112,8 +165,10 @@ int main(void)
 	}
 	
 	// Bereit zur Messung
-	// Messung beginnt:
+}
 
+void messen(void) {
+	//Beginne Messung:
 	TCCR2B	|= (1<<CS22) | (1<<CS21) | (1<<CS20);		// TIMER_COUNTER_2: mit Prescaler clk/1024 starten
 	
 	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
@@ -124,16 +179,9 @@ int main(void)
 	TCCR1B	&= ~(1<<CS11);								// TIMER_COUNTER_1 stoppen
 	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
 	ffclose();											// Datei schliessen
-	
-	PORTC	|= (1<<LED_GRUEN);
-	PORTC	&= ~(1<<LED_GELB);
-	while(PINC & (1<<TST)) {}							// Vorm Umwandeln erneut auf Tastendruck warten.
-	PORTC	|= (1<<LED_GELB);
-	PORTC	&= ~(1<<LED_GRUEN);
-	
-	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
-	// Datei anlegen
-	uint8_t file_hr [] = "messung.csv";
+}
+
+void ergebnis_konvertieren(void) {
 	if( MMC_FILE_OPENED == ffopen(file_hr,'r') ){		// Falls schon vorhanden, einfach loeschen		
 		ffrm(file_hr);
 	}
@@ -175,32 +223,4 @@ int main(void)
 		ffclose();
 		seek -= 3 * CACHE_SIZE;								// Position um 2 * CACHE_SIZE Byte weiter
 	}
-	
-	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
-	PORTC	|= (1<<LED_GRUEN);							// LED "bereit" an
-	PORTC	&= ~(1<<LED_ROT);							// rote LED aus
-	
-	MCUCR	|= (1<<SE) | (1<<SM1);						// Sleepmode einstellen
-	asm volatile("sleep");								// Ausschalten
-}
-
-ISR (TIMER2_OVF_vect)
-{
-	zaehler ++;
-}
-
-ISR (TIMER0_COMPA_vect)
-{
-	TimingDelay = (TimingDelay==0) ? 0 : TimingDelay-1;
-}
-
-ISR (ADC_vect)
-{
-	cli();												// Voruebergehend nicht auf Interrupts reagieren
-	time = TCNT1L;										// Zeit zwischenspeichern
-	TCNT1 = 0;											// TIMER_COUNTER_1 von vorn starten
-	ffwrite(time);
-	ffwrite(ADCL);										// Schreibe auf SD-Karte
-	ffwrite(ADCH);
-	sei();												// Interrupts wieder beachten
 }
