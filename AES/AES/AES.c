@@ -33,7 +33,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
 // Fuer die Speicherkarte:
 #include "sd/mmc_config.h"
