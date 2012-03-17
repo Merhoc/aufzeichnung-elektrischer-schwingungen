@@ -55,16 +55,16 @@ volatile uint8_t 	TimingDelay;
 // Fuer die Messung:
 
 // Benoetigte Variablen definieren
-char datensatz[5], zaehler;
-uint8_t low[CACHE_SIZE], high[CACHE_SIZE], time, ctime[CACHE_SIZE];
+char datensatz[5];
+uint8_t low[CACHE_SIZE], high[CACHE_SIZE], time, ctime[CACHE_SIZE], zaehler;
 
 uint8_t file_bin []	= "messung.bin";
 uint8_t file_hr []	= "messung.csv";
 
 // Funktionsprototypen:
-void initialisieren(void);
+uint8_t initialisieren(void);
 void messen(void);
-void ergebnis_konvertieren(void);
+uint8_t ergebnis_konvertieren(void);
 
 int main(void)
 {
@@ -78,7 +78,11 @@ int main(void)
 	PORTC	|=  (1<<LED_GELB);							// LED "beschaeftigt" an
 	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
 	
-	initialisieren();
+	if(initialisieren() == FALSE) {
+		//Initialisierung fehlgeschlagen:
+		PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt aus (ROT noch an)
+		while(1) {}
+	}
 	
 	messen();
 	
@@ -91,7 +95,11 @@ int main(void)
 	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
 	
 	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
-	ergebnis_konvertieren();
+	if(ergebnis_konvertieren() == FALSE) {
+		//Initialisierung fehlgeschlagen:
+		PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt aus (ROT noch an)
+		while(1) {}
+	}
 	
 	PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt" aus
 	PORTC	|= (1<<LED_GRUEN);							// LED "bereit" an
@@ -99,6 +107,8 @@ int main(void)
 	
 	MCUCR	|= (1<<SE) | (1<<SM1);						// Sleepmode einstellen
 	asm volatile("sleep");								// Ausschalten
+	
+	return(0);
 }
 
 ISR (TIMER2_OVF_vect)
@@ -122,7 +132,7 @@ ISR (ADC_vect)
 	sei();												// Interrupts wieder beachten
 }
 
-void initialisieren(void) {
+uint8_t initialisieren(void) {
 	// Initialisierung:
 	
 	// TIMER_COUNTER_2: 8-Bit Counter fuers Beenden der Aufzeichnung
@@ -147,24 +157,20 @@ void initialisieren(void) {
 	TCCR0B	|= (1<<CS02) | (1<<CS00);					// TIMER_COUNTER_0 mit Prescaler clk/1024 starten
 	sei();												// Auf Interrupts reagieren
 	
-	while(mmc_init() == FALSE) {}						// SD-Karte Initialisieren, bei Fehler erneut bis es klappt
+	if(mmc_init() == FALSE)								// Speicherkarte Initialisieren
+		return(FALSE);										// Funktion mit Fehlermeldung beenden
 	
-	if(fat_loadFatData() == FALSE) {					// Dateisystem laden
-		PORTC	|= (1<<LED_GRUEN);							// Wenn das Dateisystem nicht geoeffnet werden kann, alle Lichter an
-		while(1) {}											// Und nichts mehr tun
-	}
+	if(fat_loadFatData() == FALSE)						// Dateisystem laden
+		return(FALSE);										// Funktion mit Fehlermeldung beenden
 	
 	// Datei anlegen
-	if( MMC_FILE_OPENED == ffopen(file_bin,'r') ){		// Falls schon vorhanden, einfach loeschen		
-		ffrm(file_bin);
-	}
+	if( MMC_FILE_OPENED == ffopen(file_bin,'r') )		// Falls schon vorhanden,
+		ffrm(file_bin);									// einfach loeschen
 	
-	if(MMC_FILE_ERROR == ffopen(file_bin,'c') ){		// Datei zum Schreiben oeffnen.
-		PORTC	|= (1<<LED_GRUEN);							// Wenn die Datei nicht geoeffnet werden kann, alle Lichter an
-		while(1) {}											// Und nichts mehr tun
-	}
+	if(MMC_FILE_ERROR == ffopen(file_bin,'c') )			// Datei zum Schreiben oeffnen.
+		return(FALSE);											// Wenn die Datei nicht geoeffnet werden kann, Fehlermeldung zurueckgeben
 	
-	// Bereit zur Messung
+	return(TRUE);											// Bereit zur Messung
 }
 
 void messen(void) {
@@ -181,15 +187,13 @@ void messen(void) {
 	ffclose();											// Datei schliessen
 }
 
-void ergebnis_konvertieren(void) {
-	if( MMC_FILE_OPENED == ffopen(file_hr,'r') ){		// Falls schon vorhanden, einfach loeschen		
+uint8_t ergebnis_konvertieren(void) {
+	if( MMC_FILE_OPENED == ffopen(file_hr, 'r') ){		// Falls schon vorhanden, einfach loeschen		
 		ffrm(file_hr);
 	}
 	
-	if(MMC_FILE_ERROR == ffopen(file_hr,'c') ){			// Datei zum Schreiben oeffnen.
-		PORTC	|= (1<<LED_GRUEN);							// Wenn die Datei nicht geoeffnet werden kann, alle Lichter an
-		while(1) {}											// Und nichts mehr tun
-	}
+	if(MMC_FILE_ERROR == ffopen(file_hr, 'c') )			// Datei zum Schreiben oeffnen.
+		return(FALSE);											// Wenn die Datei nicht geoeffnet werden kann, Fehlermeldung zurueckgeben
 	
 	ffclose();
 	ffopen(file_bin, 'r');								// Messergebnis zum Lesen oeffnen
@@ -223,4 +227,5 @@ void ergebnis_konvertieren(void) {
 		ffclose();
 		seek -= 3 * CACHE_SIZE;								// Position um 2 * CACHE_SIZE Byte weiter
 	}
+	return(TRUE);
 }
