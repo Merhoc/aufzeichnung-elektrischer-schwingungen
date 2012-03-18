@@ -36,11 +36,11 @@ int main() {
 	unsigned short bufferl, bufferh, buffert;
 	bool error, suchel;
 	ifstream file;
-	i = 0;
+	i = 1;
 	time = 0;
 	ph = 0;
 	pl = 0;
-	suchel = false;
+	suchel = true;
 
 	cout << "Pfad zur MESSUNG.BIN: ";
 	cin >> path;
@@ -66,29 +66,32 @@ int main() {
 		bufferh = file.get();
 		wert[i] = bufferl + (bufferh<<8);
 		// Ueberpruefe auf Spitzenwerte:
-		if( !suchel & (i > 0) & (wert[i-1] > 512) & ((wert[i-1] > wert[i-2]) & (wert[i-1] >= wert[i])) ) {
+		if( !suchel & (wert[i-1] > 512) & ((wert[i-1] > wert[i-2]) & (wert[i-1] >= wert[i])) ) {
 			peak_h[ph][0] = time;
 			peak_h[ph][1] = wert[i-1];
 			ph ++;
 			suchel = true;
 		}
-		if( suchel & (i > 0) & (wert[i-1] < 512) & ((wert[i-1] <= wert[i-2]) & (wert[i-1] < wert[i])) ) {
+		if( suchel & (wert[i-1] < 512) & ((wert[i-1] <= wert[i-2]) & (wert[i-1] < wert[i])) ) {
 			peak_l[pl][0] = time;
 			peak_l[pl][1] = wert[i-1];
 			pl ++;
 			suchel = false;
+		}
+		// Falsche Spitzenwerte korrigieren (messfehler):
+		if( suchel & (wert[i-1] > peak_h[ph-1][1]) ) {
+			peak_h[ph-1][0] = time;
+			peak_h[ph-1][1] = wert[i-1];
+		}
+		if( !suchel & (wert[i-1] < peak_l[pl-1][1]) ) {
+			peak_l[pl-1][0] = time;
+			peak_l[pl-1][1] = wert[i-1];
 		}
 		time += buffert;
 		i ++;
 		records --;
 	}
 	file.close();
-	if(ph != pl & ph+1 != pl) {
-		printf("Unmoegliche Werte errechnet! (ph = %d, pl = %d)\n", ph, pl);
-		cout << "'Return' zum Beenden";
-		cin.get();
-		return(0);
-	}
 	printf("%d Datensaetze gelesen, je %d Spitzen gefunden.\n", i, ph);
 	
 	// Halbe Generatorperiode suchen:
@@ -106,7 +109,6 @@ int main() {
 		}
 		if(gen_end)
 			break;
-		i ++;
 	}
 	if(peak_l[gen_beg][1] < peak_l[gen_beg-1][1]) {
 		beg_l = true;
@@ -116,7 +118,7 @@ int main() {
 	}
 	time_beg = (beg_l)?(peak_l[gen_beg][0]):(peak_h[gen_beg][0]);
 	time_end = (end_l)?(peak_l[gen_end][0]):(peak_h[gen_end][0]);
-	fG = 500000 / (time_end - time_beg);
+	fG = 500000 / ((float)time_end - (float)time_beg);
 	printf("Halbe Generatorperiode von %d bis %d, Generatorfrequenz = %fHz\n", time_beg, time_end, fG);
 
 	if(gen_end-gen_beg < 3) {
