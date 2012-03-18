@@ -197,6 +197,10 @@ uint8_t ergebnis_konvertieren(void) {
 	ffclose();
 	ffopen(file_bin, 'r');								// Messergebnis zum Lesen oeffnen
 	uint32_t seek = file.length;						// Dateigroesse zwischenspeichern
+	
+	if( seek/3 < 500 )									// Falls weniger als 500 Datensaetze aufgezeichnet wurden
+		return(FALSE);									// Fehler zurueckgeben.
+	
 	ffclose();
 	while(seek > (3*CACHE_SIZE)-1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
