@@ -128,8 +128,8 @@ int main() {
 		return(0);
 	}
 
-	fH = ( ((gen_end-gen_beg)-3) * 1000000) / (peak_h[gen_end-1][0] - peak_h[gen_beg + 1][0]);
-	fL = ( ((gen_end-gen_beg)-3) * 1000000) / (peak_l[gen_end-1][0] - peak_l[gen_beg + 1][0]);
+	fH = ( (((float)gen_end-(float)gen_beg)-3) * 1000000) / ((float)peak_h[gen_end-1][0] - (float)peak_h[gen_beg + 1][0]);
+	fL = ( (((float)gen_end-(float)gen_beg)-3) * 1000000) / ((float)peak_l[gen_end-1][0] - (float)peak_l[gen_beg + 1][0]);
 	f  = (fH + fL) / 2;
 	printf("Eigenfrequenz des Schwingkreises = %fHz\n", f);
 
