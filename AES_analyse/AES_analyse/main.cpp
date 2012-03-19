@@ -16,12 +16,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/****************************************************************************/
-/*		Aufzeichnung elektrischer Schwingungen - Analyse					*/
-/*																			*/
-/*		Autor:		Heiko Metzger											*/
-/*		Erstellt:	01.02.2012												*/
-/****************************************************************************/
+/*
+ * Aufzeichnung elektrischer Schwingungen - Analyse
+ *
+ * main.cpp
+ * 
+ * Created: 01.02.2012
+ *  Author: Heiko Metzger
+ * 
+ */
 
 #include <iostream>
 #include <string>
@@ -31,16 +34,12 @@ using namespace std;
 
 int main() {
 	string path;
-	unsigned int peak_h[200][2], peak_l[200][2], time, i, ph, pl, records;
-	unsigned int wert[900];
-	unsigned short bufferl, bufferh, buffert;
-	bool error, suchel;
+	unsigned int peak_h[50][2], peak_l[50][2], wert[1300], time = 0, i = 1, records, time_beg, time_end;
+	unsigned short bufferl, bufferh, buffertl, bufferth, ph = 0, pl = 0, gen_beg = 0, gen_end = 0;
+	bool error = false, suchel = true, beg_l = false, end_l = false;
+	float fG1, fH1, fL1, f1;
+	float fG2, fH2, fL2, f2;
 	ifstream file;
-	i = 1;
-	time = 0;
-	ph = 0;
-	pl = 0;
-	suchel = true;
 
 	cout << "Pfad zur MESSUNG.BIN: ";
 	cin >> path;
@@ -56,23 +55,24 @@ int main() {
 
 	// Anzahl der Datensaetze ermitteln:
 	file.seekg(0, ios_base::end);
-	records = file.tellg() / 3;
+	records = (unsigned int)file.tellg() / 4;
 	file.seekg(0, ios_base::beg);
 	cout << "Lese Datei ein..." << endl;
 	while(records > 0)
 	{
-		buffert = file.get();
+		buffertl = file.get();
+		bufferth = file.get();
 		bufferl = file.get();
 		bufferh = file.get();
 		wert[i] = bufferl + (bufferh<<8);
 		// Ueberpruefe auf Spitzenwerte:
-		if( !suchel & (wert[i-1] > 512) & ((wert[i-1] > wert[i-2]) & (wert[i-1] >= wert[i])) ) {
+		if( !suchel & (wert[i-1] > 520) & ((wert[i-1] > wert[i-2]) & (wert[i-1] >= wert[i])) ) {
 			peak_h[ph][0] = time;
 			peak_h[ph][1] = wert[i-1];
 			ph ++;
 			suchel = true;
 		}
-		if( suchel & (wert[i-1] < 512) & ((wert[i-1] <= wert[i-2]) & (wert[i-1] < wert[i])) ) {
+		if( suchel & (wert[i-1] < 504) & ((wert[i-1] <= wert[i-2]) & (wert[i-1] < wert[i])) ) {
 			peak_l[pl][0] = time;
 			peak_l[pl][1] = wert[i-1];
 			pl ++;
@@ -87,19 +87,14 @@ int main() {
 			peak_l[pl-1][0] = time;
 			peak_l[pl-1][1] = wert[i-1];
 		}
-		time += buffert;
+		time += buffertl + (bufferth<<8);
 		i ++;
 		records --;
 	}
 	file.close();
-	printf("%d Datensaetze gelesen, je %d Spitzen gefunden.\n", i, ph);
+	printf("\n%d Datensaetze ueber %d * 10^(-6)s gelesen, je %d Spitzen gefunden.\n", i, time, ph);
 	
 	// Halbe Generatorperiode suchen:
-	int gen_beg, gen_end, time_beg, time_end;
-	bool beg_l = false, end_l = false;
-	float fG, fH, fL, f;
-	gen_beg = 0;
-	gen_end = 0;
 	for(i = 1; i < ph; i ++) {
 		if( peak_h[i][1] > peak_h[i-1][1] ) {
 			if(!gen_beg)
@@ -118,8 +113,8 @@ int main() {
 	}
 	time_beg = (beg_l)?(peak_l[gen_beg][0]):(peak_h[gen_beg][0]);
 	time_end = (end_l)?(peak_l[gen_end][0]):(peak_h[gen_end][0]);
-	fG = 500000 / ((float)time_end - (float)time_beg);
-	printf("Halbe Generatorperiode von %d bis %d, Generatorfrequenz = %fHz\n", time_beg, time_end, fG);
+	fG1 = 500000 / ((float)time_end - (float)time_beg);
+	printf("\nHalbe Generatorperiode von %d bis %d, Generatorfrequenz = %fHz\n", time_beg, time_end, fG1);
 
 	if(gen_end-gen_beg < 3) {
 		cout << "Zu wenige Schwingungen fuer zuverlaessige Berechnung!" << endl << "Generatorfrequenz verringern!" << endl;
@@ -128,10 +123,46 @@ int main() {
 		return(0);
 	}
 
-	fH = ( (((float)gen_end-(float)gen_beg)-3) * 1000000) / ((float)peak_h[gen_end-1][0] - (float)peak_h[gen_beg + 1][0]);
-	fL = ( (((float)gen_end-(float)gen_beg)-3) * 1000000) / ((float)peak_l[gen_end-1][0] - (float)peak_l[gen_beg + 1][0]);
-	f  = (fH + fL) / 2;
-	printf("Eigenfrequenz des Schwingkreises = %fHz\n", f);
+	fH1 = ( (((float)gen_end-(float)gen_beg)-3) * 1000000) / ((float)peak_h[gen_end-1][0] - (float)peak_h[gen_beg + 1][0]);
+	fL1 = ( (((float)gen_end-(float)gen_beg)-3) * 1000000) / ((float)peak_l[gen_end-1][0] - (float)peak_l[gen_beg + 1][0]);
+	f1  = (fH1 + fL1) / 2;
+	printf("Eigenfrequenz des Schwingkreises = %fHz\n", f1);
+
+	// Halbe Generatorperiode suchen:
+	gen_beg = i;
+	i++;
+	gen_end = 0;
+	while(i < ph) {
+		if( peak_h[i][1] > peak_h[i-1][1] ) {
+			gen_end = i;
+			break;
+		}
+		i ++;
+	}
+	if(peak_l[gen_beg][1] < peak_l[gen_beg-1][1]) {
+		beg_l = true;
+	}
+	if(peak_l[gen_end][1] < peak_l[gen_end-1][1]) {
+		end_l = true;
+	}
+	time_beg = (beg_l)?(peak_l[gen_beg][0]):(peak_h[gen_beg][0]);
+	time_end = (end_l)?(peak_l[gen_end][0]):(peak_h[gen_end][0]);
+	fG2 = 500000 / ((float)time_end - (float)time_beg);
+	printf("Halbe Generatorperiode von %d bis %d, Generatorfrequenz = %fHz\n", time_beg, time_end, fG2);
+
+	if(gen_end-gen_beg < 3) {
+		cout << "Zu wenige Schwingungen fuer zuverlaessige Berechnung!" << endl << "Generatorfrequenz verringern!" << endl;
+		cout << "'Return' zum Beenden";
+		cin.get();
+		return(0);
+	}
+
+	fH2 = ( (((float)gen_end-(float)gen_beg)-3) * 1000000) / ((float)peak_h[gen_end-1][0] - (float)peak_h[gen_beg + 1][0]);
+	fL2 = ( (((float)gen_end-(float)gen_beg)-3) * 1000000) / ((float)peak_l[gen_end-1][0] - (float)peak_l[gen_beg + 1][0]);
+	f2  = (fH2 + fL2) / 2;
+	printf("Eigenfrequenz des Schwingkreises = %fHz\n", f2);
+
+	printf("\nMittelwerte: fG = %f, fS= %f\n\n", ( (fG1 + fG2) / 2 ), ( (f1 + f2) / 2 ));
 
 	cout << "'Return' zum Beenden";
 	cin.get();
