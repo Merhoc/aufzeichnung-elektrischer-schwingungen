@@ -125,7 +125,7 @@ ISR (ADC_vect)
 	cli();												// Voruebergehend nicht auf Interrupts reagieren
 	timel = TCNT1L;										// Zeit zwischenspeichern
 	timeh = TCNT1H;
-	TCNT1 = 0;											// TIMER_COUNTER_1 von vorn starten
+	TCNT1 = 3;											// TIMER_COUNTER_1 von vorn starten
 	ffwrite(timel);
 	ffwrite(timeh);
 	ffwrite(ADCL);										// Schreibe auf SD-Karte
