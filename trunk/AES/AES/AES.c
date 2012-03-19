@@ -55,7 +55,7 @@ volatile uint8_t 	TimingDelay;
 
 // Benoetigte Variablen definieren
 char datensatz[5];
-uint8_t low[CACHE_SIZE], high[CACHE_SIZE], time, ctime[CACHE_SIZE], zaehler;
+uint8_t low[CACHE_SIZE], high[CACHE_SIZE], timel, timeh, ctimel[CACHE_SIZE], ctimeh[CACHE_SIZE], zaehler;
 
 uint8_t file_bin []	= "messung.bin";
 uint8_t file_hr []	= "messung.csv";
@@ -123,9 +123,11 @@ ISR (TIMER0_COMPA_vect)
 ISR (ADC_vect)
 {
 	cli();												// Voruebergehend nicht auf Interrupts reagieren
-	time = TCNT1L;										// Zeit zwischenspeichern
+	timel = TCNT1L;										// Zeit zwischenspeichern
+	timeh = TCNT1H;
 	TCNT1 = 0;											// TIMER_COUNTER_1 von vorn starten
-	ffwrite(time);
+	ffwrite(timel);
+	ffwrite(timeh);
 	ffwrite(ADCL);										// Schreibe auf SD-Karte
 	ffwrite(ADCH);
 	sei();												// Interrupts wieder beachten
@@ -198,37 +200,38 @@ uint8_t ergebnis_konvertieren(void) {
 	ffopen(file_bin, 'r');								// Messergebnis zum Lesen oeffnen
 	uint32_t seek = file.length;						// Dateigroesse zwischenspeichern
 	
-	if( seek/3 < 500 )									// Falls weniger als 500 Datensaetze aufgezeichnet wurden
+	if( seek/4 < 500 )									// Falls weniger als 500 Datensaetze aufgezeichnet wurden
 		return(FALSE);									// Fehler zurueckgeben.
 	
 	ffclose();
-	while(seek > (3*CACHE_SIZE)-1) {
+	while(seek > (4*CACHE_SIZE)-1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
 		ffseek(file.length - seek);						// Zu aktueller Position springen
-		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache fuellen
-			ctime[n]= ffread();
-			low[n]	= ffread();								// 2 Bytes lesen
+		for(int n = 0; n < CACHE_SIZE; n++) {			// Ergebnis-Cache fuellen
+			ctimel[n]= ffread();							//4 Bytes lesen
+			ctimeh[n]= ffread();
+			low[n]	= ffread();
 			high[n]	= ffread();
-		}		
+		}
 		ffclose();
 		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
 		ffseek(file.length);							// Ans Dateiende springen
 		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache abarbeiten
-			itoa(ctime[n], datensatz, 10);
-			for(int i = 0; i < 3; i++) {
+			itoa(ctimel[n] + (ctimeh[n]<<8), datensatz, 10);
+			for(int i = 0; i < 5; i++) {
 				if(datensatz[i] != 0x00)
 					ffwrite((uint8_t)datensatz[i]);
 			}
 			ffwrite(0x2C);									// ,
 			itoa(low[n] + (high[n]<<8), datensatz, 10);		// Datensatz formatieren
-			for(int i = 0; i < 4; i++) {					// Den Formatierten Datensatz in die Datei schreiben
+			for(int i = 0; i < 5; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 				if(datensatz[i] != 0x00)
 					ffwrite((uint8_t)datensatz[i]);
 			}
 			ffwrite(0x0A);									// Neue Zeile
 		}		
 		ffclose();
-		seek -= 3 * CACHE_SIZE;								// Position um 2 * CACHE_SIZE Byte weiter
+		seek -= 4 * CACHE_SIZE;								// Position um 2 * CACHE_SIZE Byte weiter
 	}
 	return(TRUE);
 }
