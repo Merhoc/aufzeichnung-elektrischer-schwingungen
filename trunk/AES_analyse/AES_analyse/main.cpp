@@ -34,7 +34,7 @@ using namespace std;
 
 int main() {
 	string path;
-	unsigned int peak_h[50][2], peak_l[50][2], wert[1300], time = 0, i = 1, records, time_beg, time_end;
+	unsigned int peak_h[200][2], peak_l[200][2], wert[1300], time = 0, i = 2, records, time_beg, time_end;
 	unsigned short bufferl, bufferh, buffertl, bufferth, ph = 0, pl = 0, gen_beg = 0, gen_end = 0;
 	bool error = false, suchel = true, beg_l = false, end_l = false;
 	float fG1, fH1, fL1, f1;
@@ -72,7 +72,7 @@ int main() {
 			ph ++;
 			suchel = true;
 		}
-		if( suchel & (wert[i-1] < 504) & ((wert[i-1] <= wert[i-2]) & (wert[i-1] < wert[i])) ) {
+		if( suchel & (wert[i-1] < 512) & ((wert[i-1] <= wert[i-2]) & (wert[i-1] < wert[i])) ) {
 			peak_l[pl][0] = time;
 			peak_l[pl][1] = wert[i-1];
 			pl ++;
@@ -92,10 +92,11 @@ int main() {
 		records --;
 	}
 	file.close();
-	printf("\n%d Datensaetze ueber %d * 10^(-6)s gelesen, je %d Spitzen gefunden.\n", i, time, ph);
+	printf("\n%d Datensaetze ueber %d * 10^(-6)s gelesen, je %d Spitzen gefunden.\n", i, time, ph +1);
 	
+	cin >> i;
 	// Halbe Generatorperiode suchen:
-	for(i = 1; i < ph; i ++) {
+	for(i = i; i < ph; i ++) {
 		if( peak_h[i][1] > peak_h[i-1][1] ) {
 			if(!gen_beg)
 				gen_beg = i;
@@ -162,7 +163,7 @@ int main() {
 	f2  = (fH2 + fL2) / 2;
 	printf("Eigenfrequenz des Schwingkreises = %fHz\n", f2);
 
-	printf("\nMittelwerte: fG = %f, fS= %f\n\n", ( (fG1 + fG2) / 2 ), ( (f1 + f2) / 2 ));
+	printf("\nMittelwerte: fG = %fHz, fS= %fHz\n\n", ( (fG1 + fG2) / 2 ), ( (f1 + f2) / 2 ));
 
 	cout << "'Return' zum Beenden";
 	cin.get();
