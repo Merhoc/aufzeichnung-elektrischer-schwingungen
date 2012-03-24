@@ -42,7 +42,7 @@
 
 volatile uint8_t 	TimingDelay;
 
-#define CACHE_SIZE 100
+#define CACHE_SIZE 50
 
 // Fuer die Pins:
 
@@ -181,7 +181,7 @@ void messen(void) {
 	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
 	TCCR1B	|= (1<<CS11);								// TIMER_COUNTER_1: mit Prescaler clk/8 starten
 	
-	while(zaehler < 2) {}								// Messung abwarten, den Rest regeln Interrupts
+	while(zaehler < 5) {}								// Messung abwarten, den Rest regeln Interrupts
 		
 	TCCR1B	&= ~(1<<CS11);								// TIMER_COUNTER_1 stoppen
 	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
