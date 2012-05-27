@@ -19,40 +19,27 @@
 /*
  * Aufzeichnung elektrischer Schwingungen - Analyse Qt4
  *
- * analyzer.h
+ * plot.h
  *
  * Created: 27.05.2012
  *  Author: Heiko Metzger
  *
  */
 
-#ifndef ANALYZER_H
-#define ANALYZER_H
+#ifndef PLOT_H
+#define PLOT_H
 
-#include <QMainWindow>
-#include "ui_analyzer.h"
-#include "plot.h"
+#include<QWidget>
+#include<QPainter>
 
-namespace Ui {
-class analyzer;
-class plot;
-}
-
-class analyzer : public QMainWindow, Ui::analyzer
+class plot : public QWidget
 {
     Q_OBJECT
-    
-public:
-    explicit analyzer(QMainWindow *parent = 0);
-    ~analyzer();
-    
-private:
-    analyzer *ui;
-    Ui::plot *plot;
 
-private slots:
-    void openFile();
-    void analyze();
+    plot(QWidget *parent = 0);
+
+protected:
+    void paintEvent(QPaintEvent *event);
 };
 
-#endif // ANALYZER_H
+#endif // PLOT_H
