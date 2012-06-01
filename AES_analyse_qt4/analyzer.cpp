@@ -50,10 +50,12 @@ analyzer::~analyzer()
 }
 
 void analyzer::openFile() {
+    // Datei waehlen... -Dialog
     ui->inputFileText->setText(QFileDialog::getOpenFileName(this, tr("Datei waehlen..."), "", tr("BIN Dateien (*.bin)")));
 }
 
 void analyzer::analyze() {
+    // Datei einlesen
     std::ifstream file;
     unsigned int records;
     unsigned short bufferl, bufferh, buffertl, bufferth;
@@ -73,6 +75,7 @@ void analyzer::analyze() {
     bottom = 1024;
     top = 0;
 
+    // Datensaetze einlesen:
     for(unsigned int i = 0; records > 0; records--)
     {
         buffertl = file.get();
@@ -93,8 +96,9 @@ void analyzer::analyze() {
     sprintf(str, "%d Daten mit %d Mikrosekunden gelesen.", daten, time);
     ui->statusBar->showMessage(str);
     ui->progressBar->setValue(60);
+    // Zeichnen:
     zeichnen = true;
-    this->repaint();
+    this->repaint();                    // Loest Paint-Event aus
     ui->progressBar->setValue(100);
 }
 
@@ -102,7 +106,7 @@ void analyzer::paintEvent(QPaintEvent *)
 {
     if(zeichnen) {
         QPainter painter(this);
-        painter.setPen(QPen(Qt::black, 1, Qt::SolidLine));
+        painter.setPen(QPen(QColor(0, 0xFF, 0), 1, Qt::SolidLine));
         QRect rect;
         qreal width = ui->plot->geometry().width();
         QPointF shifth(width, 0);
@@ -119,11 +123,13 @@ void analyzer::paintEvent(QPaintEvent *)
         rect = ui->plot->rect();
         rect.moveTo(point[0].x(), point[0].y());
 
-        painter.fillRect(rect, Qt::white);
+        // Hintergrund Faerben
+        painter.fillRect(rect, QColor(0, 0x33, 0));
 
         point[0]+= shiftv/2;
         werte[0] = 512;
 
+        // Graph zeichnen
         for(int i=1; i < daten; i++) {
             point[1] = point[0] + ((zeiten[i]*shifth)/time) + (((werte[i] - werte[i-1]) * shiftv)/top);
             painter.drawLine(point[0], point[1]);
