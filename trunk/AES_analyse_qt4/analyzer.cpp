@@ -103,7 +103,7 @@ void analyzer::paintEvent(QPaintEvent *)
     if(zeichnen) {
         QPainter painter(this);
         painter.setPen(QPen(Qt::black, 1, Qt::SolidLine));
-
+        QRect rect;
         qreal width = ui->plot->geometry().width();
         QPointF shifth(width, 0);
         qreal height = ui->plot->geometry().height();
@@ -115,6 +115,11 @@ void analyzer::paintEvent(QPaintEvent *)
         point[0]+= ui->verticalLayout->geometry().topLeft();
         point[0]+= ui->plot->geometry().topLeft();
         point[0].setX(point[0].x() + 9);
+        point[0].setY(point[0].y() + 9);
+        rect = ui->plot->rect();
+        rect.moveTo(point[0].x(), point[0].y());
+
+        painter.fillRect(rect, Qt::white);
 
         point[0]+= shiftv/2;
         werte[0] = 512;
