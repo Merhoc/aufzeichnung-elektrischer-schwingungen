@@ -11,10 +11,8 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        analyzer.cpp \
-    plot.cpp
+        analyzer.cpp
 
-HEADERS  += analyzer.h \
-    plot.h
+HEADERS  += analyzer.h
 
 FORMS    += analyzer.ui

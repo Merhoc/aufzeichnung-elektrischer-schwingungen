@@ -34,14 +34,15 @@
 #include<QtGui>
 
 analyzer::analyzer(QMainWindow *parent) :
-    QMainWindow(parent)
+    QMainWindow(parent),
+    ui(new Ui::analyzer)
 {
-    setupUi(this);
+    ui->setupUi(this);
 
-    plot = new plot;
+    zeichnen = false;
 
-    connect(inputFileButton, SIGNAL(clicked()), this, SLOT(openFile()));
-    connect(startButton, SIGNAL(clicked()), this, SLOT(analyze()));
+    connect(ui->inputFileButton, SIGNAL(clicked()), this, SLOT(openFile()));
+    connect(ui->startButton, SIGNAL(clicked()), this, SLOT(analyze()));
 }
 
 analyzer::~analyzer()
@@ -49,16 +50,16 @@ analyzer::~analyzer()
 }
 
 void analyzer::openFile() {
-    inputFileText->insert(QFileDialog::getOpenFileName(this, tr("Datei waehlen..."), "", tr("BIN Dateien (*.bin)")));
+    ui->inputFileText->setText(QFileDialog::getOpenFileName(this, tr("Datei waehlen..."), "", tr("BIN Dateien (*.bin)")));
 }
 
 void analyzer::analyze() {
     std::ifstream file;
-    unsigned int wert[1300], time = 0, i = 2, records;
+    unsigned int records;
     unsigned short bufferl, bufferh, buffertl, bufferth;
     file.open(ui->inputFileText->text().toAscii().constData(), std::ios_base::binary);
     if(!file.good()) {
-        statusBar->showMessage(tr("\"") + inputFileText->text() + tr("\" kann nicht geoeffnet werden oder ist leer!"));
+        ui->statusBar->showMessage(tr("\"") + ui->inputFileText->text() + tr("\" kann nicht geoeffnet werden oder ist leer!"));
         return;
     }
 
@@ -66,20 +67,64 @@ void analyzer::analyze() {
     file.seekg(0, std::ios_base::end);
     records = (unsigned int)file.tellg() / 4;
     file.seekg(0, std::ios_base::beg);
-    progressBar->setValue(10);
+    ui->progressBar->setValue(10);
+    time = 0;
+    daten = records;
+    bottom = 1024;
+    top = 0;
 
-    while(records > 0)
+    for(unsigned int i = 0; records > 0; records--)
     {
         buffertl = file.get();
         bufferth = file.get();
         bufferl = file.get();
         bufferh = file.get();
-        wert[i] = bufferl + (bufferh<<8);
+        werte[i] = bufferl + (bufferh<<8);
         time += buffertl + (bufferth<<8);
+        zeiten[i] = buffertl + (bufferth<<8);
         i ++;
-        records --;
+        if(werte[i] < bottom)
+            bottom = werte[i];
+        if(werte[i] > top)
+            top = werte[i];
     }
     file.close();
-    statusBar->showMessage(tr("Auslesen beendet."));
-    progressBar->setValue(100);
+    ui->statusBar->showMessage(tr("Auslesen beendet."));
+    sprintf(str, "%d Daten mit %d Mikrosekunden gelesen.", daten, time);
+    ui->statusBar->showMessage(str);
+    ui->progressBar->setValue(60);
+    zeichnen = true;
+    this->repaint();
+    ui->progressBar->setValue(100);
+}
+
+void analyzer::paintEvent(QPaintEvent *)
+{
+    if(zeichnen) {
+        QPainter painter(this);
+        painter.setPen(QPen(Qt::black, 1, Qt::SolidLine));
+
+        qreal width = ui->plot->geometry().width();
+        QPointF shifth(width, 0);
+        qreal height = ui->plot->geometry().height();
+        QPointF shiftv(0, height);
+
+        QPointF point[2];
+
+        point[0] = ui->centralWidget->geometry().topLeft();
+        point[0]+= ui->verticalLayout->geometry().topLeft();
+        point[0]+= ui->plot->geometry().topLeft();
+        point[0].setX(point[0].x() + 9);
+
+        point[0]+= shiftv/2;
+        werte[0] = 512;
+
+        for(int i=1; i < daten; i++) {
+            point[1] = point[0] + ((zeiten[i]*shifth)/time) + (((werte[i] - werte[i-1]) * shiftv)/top);
+            painter.drawLine(point[0], point[1]);
+            point[0] = point[1];
+        }
+        sprintf(str, "Top: %d, Bottom: %d", top, bottom);
+        ui->statusBar->showMessage(str);
+    }
 }

@@ -31,14 +31,12 @@
 
 #include <QMainWindow>
 #include "ui_analyzer.h"
-#include "plot.h"
 
 namespace Ui {
 class analyzer;
-class plot;
 }
 
-class analyzer : public QMainWindow, Ui::analyzer
+class analyzer : public QMainWindow
 {
     Q_OBJECT
     
@@ -47,12 +45,18 @@ public:
     ~analyzer();
     
 private:
-    analyzer *ui;
-    Ui::plot *plot;
+    Ui::analyzer *ui;
+    unsigned int time;
+    unsigned short werte[1300], zeiten[1300], daten, top, bottom;
+    bool zeichnen;
+    char *str;
 
 private slots:
     void openFile();
     void analyze();
+
+protected:
+    void paintEvent(QPaintEvent *);
 };
 
 #endif // ANALYZER_H
