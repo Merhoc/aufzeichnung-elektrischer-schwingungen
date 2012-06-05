@@ -59,7 +59,7 @@ void analyzer::analyze() {
     FILE * fd;
     QFile file;
     unsigned int records;
-    unsigned short bufferl, bufferh, buffertl, bufferth;
+    char bufferl, bufferh, buffertl, bufferth;
     fd = fopen(ui->inputFileText->text().toAscii().constData(), "rb");
     if(fd == NULL) {
         ui->statusBar->showMessage(tr("\"") + ui->inputFileText->text() + tr("\" kann nicht geoeffnet werden oder ist leer!"));
@@ -75,13 +75,12 @@ void analyzer::analyze() {
     top = 0;
 
     // Datensaetze einlesen:
-    QByteArray data = file.readAll();
     for(unsigned int i = 0; records > 0; records--)
     {
-        buffertl = data[4*i + 0];
-        bufferth = data[4*i + 1];
-        bufferl  = data[4*i + 2];
-        bufferh  = data[4*i + 3];
+        file.getChar(&buffertl);
+        file.getChar(&bufferth);
+        file.getChar(&bufferl);
+        file.getChar(&bufferh);
         werte[i] = bufferl + (bufferh<<8);
         time += buffertl + (bufferth<<8);
         zeiten[i] = buffertl + (bufferth<<8);
@@ -93,6 +92,7 @@ void analyzer::analyze() {
     }
     file.close();
     ui->statusBar->showMessage(QString::number(daten) + " Daten mit " + QString::number(time) + " Mikrosekunden gelesen.");
+    qDebug() << QString::number(daten) + " Daten mit " + QString::number(time) + " Mikrosekunden gelesen.";
     ui->progressBar->setValue(60);
     // Zeichnen:
     zeichnen = true;
@@ -121,8 +121,6 @@ void analyzer::paintEvent(QPaintEvent *)
         rect = ui->plot->rect();
         rect.moveTo(point[0].x(), point[0].y());
 
-        qDebug() << width << height;
-
         // Hintergrund Faerben
         painter.fillRect(rect, QColor(0, 0x33, 0));
 
@@ -131,10 +129,9 @@ void analyzer::paintEvent(QPaintEvent *)
 
         // Graph zeichnen
         for(int i=1; i < daten; i++) {
-            point[1] = point[0] + ((zeiten[i]*shifth)/time) + (((werte[i] - werte[i-1]) * shiftv)/top);
+            point[1] = point[0] + ((zeiten[i]*shifth)/time) + (((werte[i-1] - werte[i]) * shiftv)/(2*top));
             painter.drawLine(point[0], point[1]);
             point[0] = point[1];
-            qDebug() << (zeiten[i]*shifth);
         }
         ui->statusBar->showMessage("Top: " + QString::number(top) + ", Bottom: " + QString::number(bottom));
         zeichnen = false;
