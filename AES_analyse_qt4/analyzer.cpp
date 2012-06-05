@@ -29,7 +29,7 @@
 #include "analyzer.h"
 #include "ui_analyzer.h"
 
-#include<fstream>
+#include <stdio.h>
 
 #include<QtGui>
 
@@ -56,19 +56,19 @@ void analyzer::openFile() {
 
 void analyzer::analyze() {
     // Datei einlesen
-    std::ifstream file;
+    FILE * fd;
+    QFile file;
     unsigned int records;
     unsigned short bufferl, bufferh, buffertl, bufferth;
-    file.open(ui->inputFileText->text().toAscii().constData(), std::ios_base::binary);
-    if(!file.good()) {
+    fd = fopen(ui->inputFileText->text().toAscii().constData(), "rb");
+    if(fd == NULL) {
         ui->statusBar->showMessage(tr("\"") + ui->inputFileText->text() + tr("\" kann nicht geoeffnet werden oder ist leer!"));
         return;
     }
+    file.open(fd, QIODevice::ReadOnly);
 
     // Anzahl der Datensaetze ermitteln:
-    file.seekg(0, std::ios_base::end);
-    records = (unsigned int)file.tellg() / 4;
-    file.seekg(0, std::ios_base::beg);
+    records = (unsigned int)file.size() / 4;
     ui->progressBar->setValue(10);
     time = 0;
     daten = records;
@@ -76,12 +76,13 @@ void analyzer::analyze() {
     top = 0;
 
     // Datensaetze einlesen:
+    QByteArray data = file.readAll();
     for(unsigned int i = 0; records > 0; records--)
     {
-        buffertl = file.get();
-        bufferth = file.get();
-        bufferl = file.get();
-        bufferh = file.get();
+        buffertl = data[4*i + 0];
+        bufferth = data[4*i + 1];
+        bufferl  = data[4*i + 2];
+        bufferh  = data[4*i + 3];
         werte[i] = bufferl + (bufferh<<8);
         time += buffertl + (bufferth<<8);
         zeiten[i] = buffertl + (bufferth<<8);
