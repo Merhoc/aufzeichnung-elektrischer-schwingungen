@@ -29,6 +29,8 @@
 #include "analyzer.h"
 #include "ui_analyzer.h"
 
+#include <fstream>
+
 #include <QDebug>
 
 #include <QtGui>
@@ -56,18 +58,18 @@ void analyzer::openFile() {
 
 void analyzer::analyze() {
     // Datei einlesen
-    FILE * fd;
-    QFile file;
-    unsigned int records;
-    char bufferl, bufferh, buffertl, bufferth;
-    fd = fopen(ui->inputFileText->text().toAscii().constData(), "rb");
-    if(fd == NULL) {
+    std::ifstream file;
+    short records;
+    unsigned short bufferl, bufferh, buffertl, bufferth;
+    file.open(ui->inputFileText->text().toAscii().constData(), std::ios_base::binary);
+    if(!file.good()) {
         ui->statusBar->showMessage(tr("\"") + ui->inputFileText->text() + tr("\" kann nicht geoeffnet werden oder ist leer!"));
         return;
     }
-    file.open(fd, QIODevice::ReadOnly);
     // Anzahl der Datensaetze ermitteln:
-    records = (unsigned int)file.size() / 4;
+    file.seekg(0, std::ios_base::end);
+    records = (unsigned int)file.tellg() / 4;
+    file.seekg(0, std::ios_base::beg);
     ui->progressBar->setValue(10);
     time = 0;
     daten = records;
@@ -77,10 +79,10 @@ void analyzer::analyze() {
     // Datensaetze einlesen:
     for(unsigned int i = 0; records > 0; records--)
     {
-        file.getChar(&buffertl);
-        file.getChar(&bufferth);
-        file.getChar(&bufferl);
-        file.getChar(&bufferh);
+        buffertl = file.get();
+        bufferth = file.get();
+        bufferl = file.get();
+        bufferh = file.get();
         werte[i] = bufferl + (bufferh<<8);
         time += buffertl + (bufferth<<8);
         zeiten[i] = buffertl + (bufferth<<8);
@@ -129,7 +131,7 @@ void analyzer::paintEvent(QPaintEvent *)
 
         // Graph zeichnen
         for(int i=1; i < daten; i++) {
-            point[1] = point[0] + ((zeiten[i]*shifth)/time) + (((werte[i-1] - werte[i]) * shiftv)/(2*top));
+            point[1] = point[0] + ((zeiten[i]*shifth)/time) + (((werte[i-1] - werte[i]) * shiftv)/(top));
             painter.drawLine(point[0], point[1]);
             point[0] = point[1];
         }
