@@ -49,7 +49,6 @@ private:
     unsigned int time;
     unsigned short werte[1300], zeiten[1300], daten, top, bottom;
     bool zeichnen;
-    char *str;
 
 private slots:
     void openFile();

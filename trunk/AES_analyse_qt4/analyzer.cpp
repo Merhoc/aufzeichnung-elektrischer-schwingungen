@@ -29,9 +29,9 @@
 #include "analyzer.h"
 #include "ui_analyzer.h"
 
-#include <stdio.h>
+#include <QDebug>
 
-#include<QtGui>
+#include <QtGui>
 
 analyzer::analyzer(QMainWindow *parent) :
     QMainWindow(parent),
@@ -66,7 +66,6 @@ void analyzer::analyze() {
         return;
     }
     file.open(fd, QIODevice::ReadOnly);
-
     // Anzahl der Datensaetze ermitteln:
     records = (unsigned int)file.size() / 4;
     ui->progressBar->setValue(10);
@@ -93,9 +92,7 @@ void analyzer::analyze() {
             top = werte[i];
     }
     file.close();
-    ui->statusBar->showMessage(tr("Auslesen beendet."));
-    sprintf(str, "%d Daten mit %d Mikrosekunden gelesen.", daten, time);
-    ui->statusBar->showMessage(str);
+    ui->statusBar->showMessage(QString::number(daten) + " Daten mit " + QString::number(time) + " Mikrosekunden gelesen.");
     ui->progressBar->setValue(60);
     // Zeichnen:
     zeichnen = true;
@@ -124,6 +121,8 @@ void analyzer::paintEvent(QPaintEvent *)
         rect = ui->plot->rect();
         rect.moveTo(point[0].x(), point[0].y());
 
+        qDebug() << width << height;
+
         // Hintergrund Faerben
         painter.fillRect(rect, QColor(0, 0x33, 0));
 
@@ -135,8 +134,9 @@ void analyzer::paintEvent(QPaintEvent *)
             point[1] = point[0] + ((zeiten[i]*shifth)/time) + (((werte[i] - werte[i-1]) * shiftv)/top);
             painter.drawLine(point[0], point[1]);
             point[0] = point[1];
+            qDebug() << (zeiten[i]*shifth);
         }
-        sprintf(str, "Top: %d, Bottom: %d", top, bottom);
-        ui->statusBar->showMessage(str);
+        ui->statusBar->showMessage("Top: " + QString::number(top) + ", Bottom: " + QString::number(bottom));
+        zeichnen = false;
     }
 }
