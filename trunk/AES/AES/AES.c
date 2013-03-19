@@ -23,7 +23,7 @@
  *  Author: Heiko Metzger
  * 
  * Fuses: low = 0xFD ; high = 0xDF ; ext. = 0xF9
- * F_CPU = 8000000	; ATMEGA168P
+ * F_CPU = 8000000	; Device: ATMEGA168P
  */ 
 
 #ifndef F_CPU
@@ -34,7 +34,7 @@
 #include <avr/interrupt.h>
 #include <stdlib.h>
 
-// Fuer die Speicherkarte:
+// Fuer die Speicherkarte:	http://www.mikrocontroller.net/articles/AVR_FAT32
 #include "sd/mmc_config.h"
 #include "sd/file.h"
 #include "sd/fat.h"
@@ -42,6 +42,7 @@
 
 volatile uint8_t 	TimingDelay;
 
+// Anzahl der auf einen Schub zu konvertierenden Datensätze:
 #define CACHE_SIZE 50
 
 // Fuer die Pins:
@@ -54,15 +55,16 @@ volatile uint8_t 	TimingDelay;
 // Fuer die Messung:
 
 // Benoetigte Variablen definieren
-char datensatz[5];
-uint8_t low[CACHE_SIZE], high[CACHE_SIZE], timel, timeh, ctimel[CACHE_SIZE], ctimeh[CACHE_SIZE], zaehler;
+char 	datensatz[5];
+uint8_t low[CACHE_SIZE], high[CACHE_SIZE], ctimel[CACHE_SIZE], ctimeh[CACHE_SIZE];
+uint8_t timel, timeh, zaehler;
 
 uint8_t file_bin []	= "messung.bin";
 uint8_t file_hr []	= "messung.csv";
 
 // Funktionsprototypen:
 uint8_t initialisieren(void);
-void messen(void);
+void 	messen(void);
 uint8_t ergebnis_konvertieren(void);
 
 int main(void)
@@ -78,7 +80,7 @@ int main(void)
 	PORTC	&= ~(1<<LED_GRUEN);							// LED "bereit" aus
 	
 	if(initialisieren() == FALSE) {
-		//Initialisierung fehlgeschlagen:
+		// Initialisieren fehlgeschlagen:
 		PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt aus (ROT noch an)
 		while(1) {}
 	}
@@ -95,7 +97,7 @@ int main(void)
 	
 	// Messung ist abgeschlossen, nun muss das Ergebnis fuer Menschen lesbar gemacht werden:
 	if(ergebnis_konvertieren() == FALSE) {
-		//Initialisierung fehlgeschlagen:
+		// Konvertieren fehlgeschlagen:
 		PORTC	&= ~(1<<LED_GELB);							// LED "beschaeftigt aus (ROT noch an)
 		while(1) {}
 	}
@@ -112,6 +114,7 @@ int main(void)
 
 ISR (TIMER2_OVF_vect)
 {
+	// Zaehlerueberlauf zaehlen
 	zaehler ++;
 }
 
@@ -122,19 +125,20 @@ ISR (TIMER0_COMPA_vect)
 
 ISR (ADC_vect)
 {
+	// Wandlung abgeschlossen, Ergebnis verarbeiten:
 	cli();												// Voruebergehend nicht auf Interrupts reagieren
 	timel = TCNT1L;										// Zeit zwischenspeichern
 	timeh = TCNT1H;
 	TCNT1 = 3;											// TIMER_COUNTER_1 von vorn starten
-	ffwrite(timel);
+	ffwrite(timel);										// Schreibe auf SD-Karte
 	ffwrite(timeh);
-	ffwrite(ADCL);										// Schreibe auf SD-Karte
+	ffwrite(ADCL);
 	ffwrite(ADCH);
 	sei();												// Interrupts wieder beachten
 }
 
 uint8_t initialisieren(void) {
-	// Initialisierung:
+	// Initialisieren:
 	
 	// TIMER_COUNTER_2: 8-Bit Counter fuers Beenden der Aufzeichnung
 	TIMSK2	|= (1<<TOIE2);								// Interrupt bei Owerflow aktivieren
@@ -158,10 +162,10 @@ uint8_t initialisieren(void) {
 	TCCR0B	|= (1<<CS02) | (1<<CS00);					// TIMER_COUNTER_0 mit Prescaler clk/1024 starten
 	sei();												// Auf Interrupts reagieren
 	
-	if(mmc_init() == FALSE)								// Speicherkarte Initialisieren
+	if(mmc_init() == FALSE)								// Speicherkarte Initialisieren, wenn Fehlgeschlagen:
 		return(FALSE);										// Funktion mit Fehlermeldung beenden
 	
-	if(fat_loadFatData() == FALSE)						// Dateisystem laden
+	if(fat_loadFatData() == FALSE)						// Dateisystem laden, wenn Fehlgeschlagen:
 		return(FALSE);										// Funktion mit Fehlermeldung beenden
 	
 	// Datei anlegen
@@ -171,44 +175,45 @@ uint8_t initialisieren(void) {
 	if(MMC_FILE_ERROR == ffopen(file_bin,'c') )			// Datei zum Schreiben oeffnen.
 		return(FALSE);											// Wenn die Datei nicht geoeffnet werden kann, Fehlermeldung zurueckgeben
 	
-	return(TRUE);											// Bereit zur Messung
+	return(TRUE);										// Bereit zur Messung
 }
 
 void messen(void) {
 	//Beginne Messung:
 	TCCR2B	|= (1<<CS22) | (1<<CS21) | (1<<CS20);		// TIMER_COUNTER_2: mit Prescaler clk/1024 starten
 	
-	ADCSRA	|= (1<<ADSC);								// Analog/Digital Wandler starten
+	ADCSRA	|= (1<<ADSC);								// Analog/Digital-Wandler starten
 	TCCR1B	|= (1<<CS11);								// TIMER_COUNTER_1: mit Prescaler clk/8 starten
 	
 	while(zaehler < 5) {}								// Messung abwarten, den Rest regeln Interrupts
 		
 	TCCR1B	&= ~(1<<CS11);								// TIMER_COUNTER_1 stoppen
-	ADCSRA	&= ~(1<<ADEN);								// ADC Ausschalten
+	ADCSRA	&= ~(1<<ADEN);								// Analog/Digital-Wandler Ausschalten
 	ffclose();											// Datei schliessen
 }
 
 uint8_t ergebnis_konvertieren(void) {
+	// Ergebnis aus MESSUNG.BIN ins CSV-Format nach MESSUNG.CSV uebertragen
 	if( MMC_FILE_OPENED == ffopen(file_hr, 'r') ){		// Falls schon vorhanden, einfach loeschen		
 		ffrm(file_hr);
 	}
 	
-	if(MMC_FILE_ERROR == ffopen(file_hr, 'c') )			// Datei zum Schreiben oeffnen.
-		return(FALSE);											// Wenn die Datei nicht geoeffnet werden kann, Fehlermeldung zurueckgeben
+	if(MMC_FILE_ERROR == ffopen(file_hr, 'c') )			// Datei zum Schreiben oeffnen, wenn Fehlgeschlagen:
+		return(FALSE);										// Fehlermeldung zurueckgeben
 	
 	ffclose();
 	ffopen(file_bin, 'r');								// Messergebnis zum Lesen oeffnen
 	uint32_t seek = file.length;						// Dateigroesse zwischenspeichern
 	
-	if( seek/4 < 500 )									// Falls weniger als 500 Datensaetze aufgezeichnet wurden
-		return(FALSE);									// Fehler zurueckgeben.
+	if( seek/4 < 500 )									// Falls weniger als 500 Datensaetze aufgezeichnet wurden:
+		return(FALSE);										// Fehler zurueckgeben.
 	
 	ffclose();
 	while(seek > (4*CACHE_SIZE)-1) {
 		ffopen(file_bin, 'r');							// Messergebnis zum Lesen oeffnen
 		ffseek(file.length - seek);						// Zu aktueller Position springen
 		for(int n = 0; n < CACHE_SIZE; n++) {			// Ergebnis-Cache fuellen
-			ctimel[n]= ffread();							//4 Bytes lesen
+			ctimel[n]= ffread();							// 4 Bytes lesen
 			ctimeh[n]= ffread();
 			low[n]	= ffread();
 			high[n]	= ffread();
@@ -216,14 +221,14 @@ uint8_t ergebnis_konvertieren(void) {
 		ffclose();
 		ffopen(file_hr, 'w');							// Zieldatei zum Schreiben oeffnen
 		ffseek(file.length);							// Ans Dateiende springen
-		for(int n = 0; n < CACHE_SIZE; n++) {					// Ergebnis-Cache abarbeiten
+		for(int n = 0; n < CACHE_SIZE; n++) {			// Ergebnis-Cache abarbeiten
 			itoa(ctimel[n] + (ctimeh[n]<<8), datensatz, 10);
-			for(int i = 0; i < 5; i++) {
+			for(int i = 0; i < 5; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 				if(datensatz[i] != 0x00)
 					ffwrite((uint8_t)datensatz[i]);
 			}
-			ffwrite(0x2C);									// ,
-			itoa(low[n] + (high[n]<<8), datensatz, 10);		// Datensatz formatieren
+			ffwrite(0x2C);									// , (Komma) schreiben
+			itoa(low[n] + (high[n]<<8), datensatz, 10);
 			for(int i = 0; i < 5; i++) {					// Den Formatierten Datensatz in die Datei schreiben
 				if(datensatz[i] != 0x00)
 					ffwrite((uint8_t)datensatz[i]);
@@ -231,7 +236,7 @@ uint8_t ergebnis_konvertieren(void) {
 			ffwrite(0x0A);									// Neue Zeile
 		}		
 		ffclose();
-		seek -= 4 * CACHE_SIZE;								// Position um 2 * CACHE_SIZE Byte weiter
+		seek -= 4 * CACHE_SIZE;								// Position um 4 * CACHE_SIZE Bytes weiter
 	}
-	return(TRUE);
+	return(TRUE);										// Erfolg des Konvertierens melden
 }
